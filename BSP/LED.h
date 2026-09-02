@@ -3,25 +3,17 @@
 
 #include "ti_msp_dl_config.h"
 
-/**
- * @brief 打开 LED
+/*
+ * 注意：由于 SysConfig 中已将 PB27 由普通 GPIO 切换为 PWM_LED 定时器输出引脚，
+ * 原 GPIO 相关的宏定义 (LED_PORT, LED_PIN_27_PIN) 已被移除。
+ * 此处相关 GPIO 操作接口已注释，如需控制 LED 亮度请使用 BSP/PWM.h 模块。
  */
+
+/*
 void LED_ON(void);
-
-/**
- * @brief 关闭 LED
- */
 void LED_OFF(void);
-
-/**
- * @brief 翻转 LED 状态
- */
 void LED_TOGGLE(void);
-
-/**
- * @brief 翻转 LED 状态并延时指定毫秒数
- * @param ms 翻转后延时的毫秒数
- */
 void LED_BLINK(uint32_t ms);
+*/
 
 #endif /* __LED_H */

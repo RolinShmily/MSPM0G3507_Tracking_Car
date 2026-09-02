@@ -40,6 +40,8 @@
 
 #include "ti_msp_dl_config.h"
 
+DL_TimerG_backupConfig gPWM_LEDBackup;
+
 /*
  *  ======== SYSCFG_DL_init ========
  *  Perform any initialization needed before using any board APIs
@@ -50,18 +52,44 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_GPIO_init();
     /* Module-Specific Initializations*/
     SYSCFG_DL_SYSCTL_init();
+    SYSCFG_DL_PWM_LED_init();
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_SYSTICK_init();
+    /* Ensure backup structures have no valid state */
+    gPWM_LEDBackup.backupRdy = false;
+}
+/*
+ * User should take care to save and restore register configuration in application.
+ * See Retention Configuration section for more details.
+ */
+SYSCONFIG_WEAK bool SYSCFG_DL_saveConfiguration(void)
+{
+    bool retStatus = true;
+
+    retStatus &= DL_TimerG_saveConfiguration(PWM_LED_INST, &gPWM_LEDBackup);
+
+    return retStatus;
+}
+
+SYSCONFIG_WEAK bool SYSCFG_DL_restoreConfiguration(void)
+{
+    bool retStatus = true;
+
+    retStatus &= DL_TimerG_restoreConfiguration(PWM_LED_INST, &gPWM_LEDBackup, false);
+
+    return retStatus;
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
 {
     DL_GPIO_reset(GPIOA);
     DL_GPIO_reset(GPIOB);
+    DL_TimerG_reset(PWM_LED_INST);
     DL_TimerG_reset(TIMER_0_INST);
 
     DL_GPIO_enablePower(GPIOA);
     DL_GPIO_enablePower(GPIOB);
+    DL_TimerG_enablePower(PWM_LED_INST);
     DL_TimerG_enablePower(TIMER_0_INST);
 
     delay_cycles(POWER_STARTUP_DELAY);
@@ -70,7 +98,8 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
 SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 {
 
-    DL_GPIO_initDigitalOutput(LED_PIN_27_IOMUX);
+    DL_GPIO_initPeripheralOutputFunction(GPIO_PWM_LED_C1_IOMUX, GPIO_PWM_LED_C1_IOMUX_FUNC);
+    DL_GPIO_enableOutput(GPIO_PWM_LED_C1_PORT, GPIO_PWM_LED_C1_PIN);
 
     DL_GPIO_initDigitalInputFeatures(KEY1_PIN_28_IOMUX,
                                      DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
@@ -83,8 +112,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
     DL_GPIO_setUpperPinsPolarity(KEY1_PORT, DL_GPIO_PIN_18_EDGE_RISE);
     DL_GPIO_clearInterruptStatus(KEY1_PORT, KEY1_PIN_18_PIN);
     DL_GPIO_enableInterrupt(KEY1_PORT, KEY1_PIN_18_PIN);
-    DL_GPIO_setPins(LED_PORT, LED_PIN_27_PIN);
-    DL_GPIO_enableOutput(LED_PORT, LED_PIN_27_PIN);
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
@@ -99,6 +126,47 @@ SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
     DL_SYSCTL_disableSYSPLL();
     DL_SYSCTL_setULPCLKDivider(DL_SYSCTL_ULPCLK_DIV_1);
     DL_SYSCTL_setMCLKDivider(DL_SYSCTL_MCLK_DIVIDER_DISABLE);
+}
+
+/*
+ * Timer clock configuration to be sourced by  / 8 (4000000 Hz)
+ * timerClkFreq = (timerClkSrc / (timerClkDivRatio * (timerClkPrescale + 1)))
+ *   40000 Hz = 4000000 Hz / (8 * (99 + 1))
+ */
+static const DL_TimerG_ClockConfig gPWM_LEDClockConfig = {
+    .clockSel = DL_TIMER_CLOCK_BUSCLK,
+    .divideRatio = DL_TIMER_CLOCK_DIVIDE_8,
+    .prescale = 99U};
+
+static const DL_TimerG_PWMConfig gPWM_LEDConfig = {
+    .pwmMode = DL_TIMER_PWM_MODE_EDGE_ALIGN_UP,
+    .period = 1000,
+    .isTimerWithFourCC = false,
+    .startTimer = DL_TIMER_START,
+};
+
+SYSCONFIG_WEAK void SYSCFG_DL_PWM_LED_init(void)
+{
+
+    DL_TimerG_setClockConfig(
+        PWM_LED_INST, (DL_TimerG_ClockConfig *)&gPWM_LEDClockConfig);
+
+    DL_TimerG_initPWMMode(
+        PWM_LED_INST, (DL_TimerG_PWMConfig *)&gPWM_LEDConfig);
+
+    // Set Counter control to the smallest CC index being used
+    DL_TimerG_setCounterControl(PWM_LED_INST, DL_TIMER_CZC_CCCTL1_ZCOND, DL_TIMER_CAC_CCCTL1_ACOND, DL_TIMER_CLC_CCCTL1_LCOND);
+
+    DL_TimerG_setCaptureCompareOutCtl(PWM_LED_INST, DL_TIMER_CC_OCTL_INIT_VAL_LOW,
+                                      DL_TIMER_CC_OCTL_INV_OUT_DISABLED, DL_TIMER_CC_OCTL_SRC_FUNCVAL,
+                                      DL_TIMERG_CAPTURE_COMPARE_1_INDEX);
+
+    DL_TimerG_setCaptCompUpdateMethod(PWM_LED_INST, DL_TIMER_CC_UPDATE_METHOD_IMMEDIATE, DL_TIMERG_CAPTURE_COMPARE_1_INDEX);
+    DL_TimerG_setCaptureCompareValue(PWM_LED_INST, 0, DL_TIMER_CC_1_INDEX);
+
+    DL_TimerG_enableClock(PWM_LED_INST);
+
+    DL_TimerG_setCCPDirection(PWM_LED_INST, DL_TIMER_CC1_OUTPUT);
 }
 
 /*
