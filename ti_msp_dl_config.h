@@ -89,6 +89,24 @@ extern "C"
 #define GPIO_PWM_LED_C1_IOMUX_FUNC                   IOMUX_PINCM58_PF_TIMG6_CCP1
 #define GPIO_PWM_LED_C1_IDX                                  DL_TIMER_CC_1_INDEX
 
+/* Defines for PWM_MOTO */
+#define PWM_MOTO_INST                                                      TIMG8
+#define PWM_MOTO_INST_IRQHandler                                TIMG8_IRQHandler
+#define PWM_MOTO_INST_INT_IRQN                                  (TIMG8_INT_IRQn)
+#define PWM_MOTO_INST_CLK_FREQ                                             40000
+/* GPIO defines for channel 0 */
+#define GPIO_PWM_MOTO_C0_PORT                                              GPIOB
+#define GPIO_PWM_MOTO_C0_PIN                                      DL_GPIO_PIN_15
+#define GPIO_PWM_MOTO_C0_IOMUX                                   (IOMUX_PINCM32)
+#define GPIO_PWM_MOTO_C0_IOMUX_FUNC                  IOMUX_PINCM32_PF_TIMG8_CCP0
+#define GPIO_PWM_MOTO_C0_IDX                                 DL_TIMER_CC_0_INDEX
+/* GPIO defines for channel 1 */
+#define GPIO_PWM_MOTO_C1_PORT                                              GPIOB
+#define GPIO_PWM_MOTO_C1_PIN                                      DL_GPIO_PIN_16
+#define GPIO_PWM_MOTO_C1_IOMUX                                   (IOMUX_PINCM33)
+#define GPIO_PWM_MOTO_C1_IOMUX_FUNC                  IOMUX_PINCM33_PF_TIMG8_CCP1
+#define GPIO_PWM_MOTO_C1_IDX                                 DL_TIMER_CC_1_INDEX
+
 
 
 /* Defines for TIMER_0 */
@@ -113,6 +131,21 @@ extern "C"
 #define KEY1_PIN_18_IIDX                                    (DL_GPIO_IIDX_DIO18)
 #define KEY1_PIN_18_PIN                                         (DL_GPIO_PIN_18)
 #define KEY1_PIN_18_IOMUX                                        (IOMUX_PINCM40)
+/* Port definition for Pin Group MOTO */
+#define MOTO_PORT                                                        (GPIOB)
+
+/* Defines for PIN_22_AIN3: GPIOB.22 with pinCMx 50 on package pin 21 */
+#define MOTO_PIN_22_AIN3_PIN                                    (DL_GPIO_PIN_22)
+#define MOTO_PIN_22_AIN3_IOMUX                                   (IOMUX_PINCM50)
+/* Defines for PIN_23_AIN4: GPIOB.23 with pinCMx 51 on package pin 22 */
+#define MOTO_PIN_23_AIN4_PIN                                    (DL_GPIO_PIN_23)
+#define MOTO_PIN_23_AIN4_IOMUX                                   (IOMUX_PINCM51)
+/* Defines for PIN_25_BIN3: GPIOB.25 with pinCMx 56 on package pin 27 */
+#define MOTO_PIN_25_BIN3_PIN                                    (DL_GPIO_PIN_25)
+#define MOTO_PIN_25_BIN3_IOMUX                                   (IOMUX_PINCM56)
+/* Defines for PIN_26_BIN4: GPIOB.26 with pinCMx 57 on package pin 28 */
+#define MOTO_PIN_26_BIN4_PIN                                    (DL_GPIO_PIN_26)
+#define MOTO_PIN_26_BIN4_IOMUX                                   (IOMUX_PINCM57)
 
     /* clang-format on */
 
@@ -121,6 +154,7 @@ extern "C"
     void SYSCFG_DL_GPIO_init(void);
     void SYSCFG_DL_SYSCTL_init(void);
     void SYSCFG_DL_PWM_LED_init(void);
+    void SYSCFG_DL_PWM_MOTO_init(void);
     void SYSCFG_DL_TIMER_0_init(void);
 
     void SYSCFG_DL_SYSTICK_init(void);

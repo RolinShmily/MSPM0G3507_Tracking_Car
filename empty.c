@@ -14,7 +14,7 @@
  *    documentation and/or other materials provided with the distribution.
  *
  * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be scientific products derived
+ *    its contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -31,35 +31,44 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "BSP/PWM.h"
-#include "BSP/Tick.h"
+#include "BSP/Motor.h"
 #include "BSP/Key.h"
+#include "BSP/Tick.h"
 
 int main(void)
 {
-    /* 1. 初始化系统外设 (时钟、GPIO、SysTick、PWM_LED 定时器等) */
+    /* 1. 初始化系统时钟、电源、GPIO、SysTick 及定时器外设 */
     SYSCFG_DL_init();
 
-    /* 2. 初始化 PWM 模块 */
-    PWM_Init();
+    /* 2. 初始化电机驱动 (TIMG8 PWM 启动，初始静止) */
+    Motor_Init();
+
+    int gear = 0;   /* 当前档位 (0 ~ 10 档，每档 10% 占空比) */
+    int dir = 1;    /* 运行方向 (+1: 正转, -1: 反转) */
 
     while (1) {
-        /* 
-         * 3. 1秒内逐渐灭 (PB27 为低电平点亮，比较值从 0 增加到 1000，占空比渐暗)
-         * 共 100 个阶梯，每阶梯延时 10ms，总耗时 100 * 10ms = 1000ms = 1s
-         */
-        for (uint32_t i = 0; i <= 100; i++) {
-            PWM_Set_CompareValue(i * 10);
-            delay_ms(10);
-        }
+        /* 3. 获取滴答定时器状态机按键事件 (非阻塞，读后即清) */
+        KeyEvent_t key_evt = Key_GetEvent();
 
-        /* 
-         * 4. 另1秒内逐渐亮 (比较值从 1000 减少到 0，占空比渐亮)
-         * 共 100 个阶梯，每阶梯延时 10ms，总耗时 100 * 10ms = 1000ms = 1s
-         */
-        for (int32_t i = 100; i >= 0; i--) {
-            PWM_Set_CompareValue(i * 10);
-            delay_ms(10);
+        if (key_evt == KEY_EVENT_SHORT_PRESS) {
+            /* 
+             * 短按事件：分阶加速
+             * 档位 +1，若超过 10 档 (溢出) 则归零
+             */
+            gear++;
+            if (gear > MOTOR_GEAR_MAX) {
+                gear = 0;
+            }
+            /* 计算并设置带符号的速度值 */
+            Motor_SetSpeed(dir * (gear * 100));
+        } 
+        else if (key_evt == KEY_EVENT_LONG_PRESS) {
+            /* 
+             * 长按事件：PWM 输出与电机转向反向
+             * 方向变量直接取负号 (dir = -dir)
+             */
+            dir = -dir;
+            Motor_SetSpeed(dir * (gear * 100));
         }
     }
 }
