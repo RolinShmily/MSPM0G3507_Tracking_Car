@@ -40,8 +40,6 @@
 
 #include "ti_msp_dl_config.h"
 
-DL_TimerA_backupConfig gTIMER_0Backup;
-
 /*
  *  ======== SYSCFG_DL_init ========
  *  Perform any initialization needed before using any board APIs
@@ -54,40 +52,17 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_SYSCTL_init();
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_SYSTICK_init();
-    /* Ensure backup structures have no valid state */
-    gTIMER_0Backup.backupRdy = false;
-}
-/*
- * User should take care to save and restore register configuration in application.
- * See Retention Configuration section for more details.
- */
-SYSCONFIG_WEAK bool SYSCFG_DL_saveConfiguration(void)
-{
-    bool retStatus = true;
-
-    retStatus &= DL_TimerA_saveConfiguration(TIMER_0_INST, &gTIMER_0Backup);
-
-    return retStatus;
-}
-
-SYSCONFIG_WEAK bool SYSCFG_DL_restoreConfiguration(void)
-{
-    bool retStatus = true;
-
-    retStatus &= DL_TimerA_restoreConfiguration(TIMER_0_INST, &gTIMER_0Backup, false);
-
-    return retStatus;
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
 {
     DL_GPIO_reset(GPIOA);
     DL_GPIO_reset(GPIOB);
-    DL_TimerA_reset(TIMER_0_INST);
+    DL_TimerG_reset(TIMER_0_INST);
 
     DL_GPIO_enablePower(GPIOA);
     DL_GPIO_enablePower(GPIOB);
-    DL_TimerA_enablePower(TIMER_0_INST);
+    DL_TimerG_enablePower(TIMER_0_INST);
 
     delay_cycles(POWER_STARTUP_DELAY);
 }
@@ -131,7 +106,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)
  * timerClkFreq = (timerClkSrc / (timerClkDivRatio * (timerClkPrescale + 1)))
  *   40000 Hz = 4000000 Hz / (8 * (99 + 1))
  */
-static const DL_TimerA_ClockConfig gTIMER_0ClockConfig = {
+static const DL_TimerG_ClockConfig gTIMER_0ClockConfig = {
     .clockSel = DL_TIMER_CLOCK_BUSCLK,
     .divideRatio = DL_TIMER_CLOCK_DIVIDE_8,
     .prescale = 99U,
@@ -141,7 +116,7 @@ static const DL_TimerA_ClockConfig gTIMER_0ClockConfig = {
  * Timer load value (where the counter starts from) is calculated as (timerPeriod * timerClockFreq) - 1
  * TIMER_0_INST_LOAD_VALUE = (1000 ms * 40000 Hz) - 1
  */
-static const DL_TimerA_TimerConfig gTIMER_0TimerConfig = {
+static const DL_TimerG_TimerConfig gTIMER_0TimerConfig = {
     .period = TIMER_0_INST_LOAD_VALUE,
     .timerMode = DL_TIMER_TIMER_MODE_PERIODIC,
     .startTimer = DL_TIMER_START,
@@ -150,13 +125,13 @@ static const DL_TimerA_TimerConfig gTIMER_0TimerConfig = {
 SYSCONFIG_WEAK void SYSCFG_DL_TIMER_0_init(void)
 {
 
-    DL_TimerA_setClockConfig(TIMER_0_INST,
-                             (DL_TimerA_ClockConfig *)&gTIMER_0ClockConfig);
+    DL_TimerG_setClockConfig(TIMER_0_INST,
+                             (DL_TimerG_ClockConfig *)&gTIMER_0ClockConfig);
 
-    DL_TimerA_initTimerMode(TIMER_0_INST,
-                            (DL_TimerA_TimerConfig *)&gTIMER_0TimerConfig);
-    DL_TimerA_enableInterrupt(TIMER_0_INST, DL_TIMERA_INTERRUPT_ZERO_EVENT);
-    DL_TimerA_enableClock(TIMER_0_INST);
+    DL_TimerG_initTimerMode(TIMER_0_INST,
+                            (DL_TimerG_TimerConfig *)&gTIMER_0TimerConfig);
+    DL_TimerG_enableInterrupt(TIMER_0_INST, DL_TIMERG_INTERRUPT_ZERO_EVENT);
+    DL_TimerG_enableClock(TIMER_0_INST);
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_SYSTICK_init(void)

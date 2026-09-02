@@ -18,12 +18,12 @@ void SysTick_Handler(void)
 }
 
 /**
- * @brief TIMER_0 硬件定时器中断服务函数
+ * @brief TIMER_0 (TIMG0) 硬件通用定时器中断服务函数
  */
 void TIMER_0_INST_IRQHandler(void)
 {
-    switch (DL_Timer_getPendingInterrupt(TIMER_0_INST)) {
-        case DL_TIMER_IIDX_ZERO:
+    switch (DL_TimerG_getPendingInterrupt(TIMER_0_INST)) {
+        case DL_TIMERG_IIDX_ZERO:
             g_timer_1s_flag = 1; /* 仅置位标志位 */
             break;
         default:
@@ -32,15 +32,15 @@ void TIMER_0_INST_IRQHandler(void)
 }
 
 /**
- * @brief 初始化 1 秒硬件定时器 (使能 NVIC 中断并启动计数)
+ * @brief 初始化 1 秒硬件定时器 (使能 NVIC 中断并启动 TIMG0 计数)
  */
 void Timer_1s_Init(void)
 {
-    /* 使能 TIMER_0 在 NVIC 中的中断响应 */
+    /* 使能 TIMER_0 (TIMG0) 在 NVIC 中的中断响应 */
     NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
 
-    /* 启动定时器计数 */
-    DL_Timer_startCounter(TIMER_0_INST);
+    /* 启动 TIMG0 定时器计数 */
+    DL_TimerG_startCounter(TIMER_0_INST);
 }
 
 /**
