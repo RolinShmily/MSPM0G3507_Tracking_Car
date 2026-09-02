@@ -56,24 +56,32 @@
 #include <ti/driverlib/m0p/dl_core.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    /*
-     *  ======== SYSCFG_DL_init ========
-     *  Perform all required MSP DL initialization
-     *
-     *  This function should be called once at a point before any use of
-     *  MSP DL.
-     */
+/*
+ *  ======== SYSCFG_DL_init ========
+ *  Perform all required MSP DL initialization
+ *
+ *  This function should be called once at a point before any use of
+ *  MSP DL.
+ */
 
-    /* clang-format off */
+
+/* clang-format off */
 
 #define POWER_STARTUP_DELAY                                                (16)
 
 
 #define CPUCLK_FREQ                                                     32000000
+
+
+
+/* Defines for TIMER_0 */
+#define TIMER_0_INST                                                     (TIMA0)
+#define TIMER_0_INST_IRQHandler                                 TIMA0_IRQHandler
+#define TIMER_0_INST_INT_IRQN                                   (TIMA0_INT_IRQn)
+#define TIMER_0_INST_LOAD_VALUE                                         (39999U)
 
 
 
@@ -98,14 +106,21 @@ extern "C"
 #define KEY1_PIN_18_PIN                                         (DL_GPIO_PIN_18)
 #define KEY1_PIN_18_IOMUX                                        (IOMUX_PINCM40)
 
-    /* clang-format on */
 
-    void SYSCFG_DL_init(void);
-    void SYSCFG_DL_initPower(void);
-    void SYSCFG_DL_GPIO_init(void);
-    void SYSCFG_DL_SYSCTL_init(void);
 
-    void SYSCFG_DL_SYSTICK_init(void);
+
+/* clang-format on */
+
+void SYSCFG_DL_init(void);
+void SYSCFG_DL_initPower(void);
+void SYSCFG_DL_GPIO_init(void);
+void SYSCFG_DL_SYSCTL_init(void);
+void SYSCFG_DL_TIMER_0_init(void);
+
+void SYSCFG_DL_SYSTICK_init(void);
+
+bool SYSCFG_DL_saveConfiguration(void);
+bool SYSCFG_DL_restoreConfiguration(void);
 
 #ifdef __cplusplus
 }

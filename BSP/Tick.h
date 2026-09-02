@@ -15,4 +15,15 @@ void delay_ms(uint32_t ms);
  */
 uint32_t get_ticks(void);
 
+/**
+ * @brief 初始化 1 秒硬件定时器 (使能 NVIC 中断并启动计数)
+ */
+void Timer_1s_Init(void);
+
+/**
+ * @brief 查询 1 秒定时是否到达（读后自动清零）
+ * @return 1: 1秒已到达, 0: 未到达
+ */
+uint8_t Timer_1s_GetFlag(void);
+
 #endif /* __TICK_H */

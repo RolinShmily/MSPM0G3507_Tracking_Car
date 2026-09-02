@@ -35,43 +35,18 @@
 #include "BSP/Key.h"
 #include "BSP/Tick.h"
 
-/* PA18 按键中断标志位 (使用 volatile 确保中断与主循环间数据可见性) */
-volatile uint8_t g_key18_flag = 0;
-
-/**
- * @brief GPIOA 端口中断服务函数 (MSPM0 中 GPIOA 属于 Group 1 中断源)
- * @note  遵循标志位设计原则，中断内仅置标志位，不写入具体控制逻辑
- */
-void GROUP1_IRQHandler(void)
-{
-    /* 查询当前产生中断的引脚，DL_GPIO_getPendingInterrupt 会返回对应的 IIDX 并清除标志 */
-    switch (DL_GPIO_getPendingInterrupt(KEY1_PORT)) {
-        case KEY1_PIN_18_IIDX:
-            g_key18_flag = 1; /* 仅置位标志位 */
-            break;
-        default:
-            break;
-    }
-}
-
 int main(void)
 {
-    /* 1. 初始化系统时钟、电源、GPIO 与 SysTick */
+    /* 1. 初始化系统外设 (时钟、GPIO、SysTick 等) */
     SYSCFG_DL_init();
 
-    /* 2. 在 NVIC 中使能 GPIOA (Group 1) 外部中断 */
-    NVIC_EnableIRQ(KEY1_INT_IRQN);
+    /* 2. 初始化 1 秒硬件定时器 (开启中断并启动计数) */
+    Timer_1s_Init();
 
     while (1) {
-        /* 3. 在主循环中检测按键中断标志位 */
-        if (g_key18_flag) {
-            /* 4. 软件消抖延时 20ms，滤除机械按键抖动产生的多次误触发 */
-            delay_ms(20);
-
-            /* 5. 清除中断标志位 */
-            g_key18_flag = 0;
-
-            /* 6. 确认有效触发后，执行 LED 状态切换 */
+        /* 3. 查询 1 秒定时到达事件 (内部已实现读后自动清标志) */
+        if (Timer_1s_GetFlag()) {
+            /* 4. 翻转 LED 状态，实现 1 秒闪烁 */
             LED_TOGGLE();
         }
     }

@@ -4,6 +4,9 @@
 /* 滴答定时器毫秒计数变量 (每 1ms 中断累加 1) */
 static volatile uint32_t g_systick_ms = 0;
 
+/* 1 秒硬件定时器中断标志位 */
+static volatile uint8_t g_timer_1s_flag = 0;
+
 /**
  * @brief SysTick 1ms 中断服务函数
  */
@@ -12,6 +15,45 @@ void SysTick_Handler(void)
     g_systick_ms++;
     /* 1ms 周期调用按键状态机处理函数 */
     Key_Tick_Handler();
+}
+
+/**
+ * @brief TIMER_0 硬件定时器中断服务函数
+ */
+void TIMER_0_INST_IRQHandler(void)
+{
+    switch (DL_Timer_getPendingInterrupt(TIMER_0_INST)) {
+        case DL_TIMER_IIDX_ZERO:
+            g_timer_1s_flag = 1; /* 仅置位标志位 */
+            break;
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief 初始化 1 秒硬件定时器 (使能 NVIC 中断并启动计数)
+ */
+void Timer_1s_Init(void)
+{
+    /* 使能 TIMER_0 在 NVIC 中的中断响应 */
+    NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
+
+    /* 启动定时器计数 */
+    DL_Timer_startCounter(TIMER_0_INST);
+}
+
+/**
+ * @brief 查询 1 秒定时是否到达（读后自动清零）
+ * @return 1: 1秒已到达, 0: 未到达
+ */
+uint8_t Timer_1s_GetFlag(void)
+{
+    if (g_timer_1s_flag) {
+        g_timer_1s_flag = 0; /* 清空标志位 */
+        return 1;
+    }
+    return 0;
 }
 
 /**
