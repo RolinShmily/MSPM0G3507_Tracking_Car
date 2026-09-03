@@ -14,7 +14,7 @@
  *    documentation and/or other materials provided with the distribution.
  *
  * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
+ *    its contributors may be scientific or endorse or promote products derived
  *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -36,21 +36,39 @@
 
 int main(void)
 {
-    /* åˆå§‹åŒ–ç¡¬ä»¶å¤–è®¾é…ç½® (æ—¶é’Ÿã€GPIOã€I2C0 ç­‰) */
+    /* 1. ³õÊ¼»¯Ó²¼şÍâÉèÅäÖÃ (Ê±ÖÓ¡¢GPIO¡¢I2C0 µÈ) */
     SYSCFG_DL_init();
 
-    /* åˆå§‹åŒ– OLED å±å¹• */
+    /* 2. ³õÊ¼»¯ OLED ÆÁÄ» */
     OLED_Init();
 
-    /* æ¸…é™¤å±å¹•æ˜¾å­˜ */
+    /* 3. Çå³ıÆÁÄ»ÏÔ´æ */
     OLED_Clear();
 
-    /* æ˜¾ç¤ºç®€å•çš„æµ‹è¯•æ–‡æœ¬ */
-    OLED_ShowString(0, 0,  "MSPM0 OLED OK!", OLED_8X16);
-    OLED_ShowString(0, 20, "Hello World",    OLED_8X16);
-    OLED_ShowString(0, 40, "Test Running...", OLED_6X8);
+    /* 
+     * 4. ¸öÈËÑ§ÉúĞÅÏ¢¿¨Æ¬ÏÔÊ¾£º
+     *
+     * ¡¾µÚ 1 ĞĞ (Y = 0) ×¨Òµ¡¿£º
+     * ²ÉÓÃ¹æ·¶¼ò³Æ "×¨Òµ:µçĞÅ¹¤³Ì" (Õ¼ 104 ÏñËØ)£¬ÎÄ×ÖÍêÕûÏÔÊ¾ÎŞ½Ø¶Ï£¬ÇÒÃ°ºÅÓëºóÈıĞĞÑÏ¸ñ´¹Ö±¶ÔÆë¡£
+     */
+    OLED_ShowString(0, 0, "×¨Òµ:µçĞÅ¹¤³Ì", OLED_8X16);
 
-    /* åˆ·æ–°æ˜¾å­˜åˆ°ç‰©ç†å±å¹• */
+    /* ¡¾µÚ 2 ĞĞ (Y = 16) °à¼¶¡¿£º¹² 72 ÏñËØ£¬Õı³£ÍêÕûÏÔÊ¾ */
+    OLED_ShowString(0, 16, "°à¼¶:2308", OLED_8X16);
+
+    /* 
+     * ¡¾µÚ 3 ĞĞ (Y = 32) Ñ§ºÅ¡¿£º
+     * "Ñ§ºÅ:" Õ¼ 40 ÏñËØ£»12 Î»Ñ§ºÅ "231040200810" ÈôÊ¹ÓÃ 8x16 ×ÖÌå½«Õ¼ 96 ÏñËØ£¬
+     * ×Ü¿í 40+96=136 ÏñËØ»áµ¼ÖÂÄ©Î²Êı×Ö±»ÆÁÄ»ÇĞµô¡£
+     * ²ÉÓÃ 6x8 ½ô´Õ×ÖÌå¾ÓÖĞÏÔÊ¾ (40+72=112 ÏñËØ <= 128 ÏñËØ)£¬12 Î»Êı×ÖÍêÕûÇåÎú³ÊÏÖ¡£
+     */
+    OLED_ShowString(0, 32, "Ñ§ºÅ:", OLED_8X16);
+    OLED_ShowString(40, 36, "231040200810", OLED_6X8);
+
+    /* ¡¾µÚ 4 ĞĞ (Y = 48) ĞÕÃû¡¿£º¹² 88 ÏñËØ£¬Õı³£ÍêÕûÏÔÊ¾ */
+    OLED_ShowString(0, 48, "ĞÕÃû:ÁõÑÒÁÕ", OLED_8X16);
+
+    /* 5. Ë¢ĞÂÏÔ´æµ½ÆÁÄ»Õ¹Ê¾ */
     OLED_Update();
 
     while (1)
