@@ -31,44 +31,30 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "BSP/Motor.h"
-#include "BSP/Key.h"
+#include "BSP/OLED.h"
 #include "BSP/Tick.h"
 
 int main(void)
 {
-    /* 1. 初始化系统时钟、电源、GPIO、SysTick 及定时器外设 */
+    /* 初始化硬件外设配置 (时钟、GPIO、I2C0 等) */
     SYSCFG_DL_init();
 
-    /* 2. 初始化电机驱动 (TIMG8 PWM 启动，初始静止) */
-    Motor_Init();
+    /* 初始化 OLED 屏幕 */
+    OLED_Init();
 
-    int gear = 0;   /* 当前档位 (0 ~ 10 档，每档 10% 占空比) */
-    int dir = 1;    /* 运行方向 (+1: 正转, -1: 反转) */
+    /* 清除屏幕显存 */
+    OLED_Clear();
 
-    while (1) {
-        /* 3. 获取滴答定时器状态机按键事件 (非阻塞，读后即清) */
-        KeyEvent_t key_evt = Key_GetEvent();
+    /* 显示简单的测试文本 */
+    OLED_ShowString(0, 0,  "MSPM0 OLED OK!", OLED_8X16);
+    OLED_ShowString(0, 20, "Hello World",    OLED_8X16);
+    OLED_ShowString(0, 40, "Test Running...", OLED_6X8);
 
-        if (key_evt == KEY_EVENT_SHORT_PRESS) {
-            /* 
-             * 短按事件：分阶加速
-             * 档位 +1，若超过 10 档 (溢出) 则归零
-             */
-            gear++;
-            if (gear > MOTOR_GEAR_MAX) {
-                gear = 0;
-            }
-            /* 计算并设置带符号的速度值 */
-            Motor_SetSpeed(dir * (gear * 100));
-        } 
-        else if (key_evt == KEY_EVENT_LONG_PRESS) {
-            /* 
-             * 长按事件：PWM 输出与电机转向反向
-             * 方向变量直接取负号 (dir = -dir)
-             */
-            dir = -dir;
-            Motor_SetSpeed(dir * (gear * 100));
-        }
+    /* 刷新显存到物理屏幕 */
+    OLED_Update();
+
+    while (1)
+    {
+        delay_ms(500);
     }
 }

@@ -464,6 +464,26 @@
               <FileType>5</FileType>
               <FilePath>../BSP/Motor.h</FilePath>
             </File>
+            <File>
+              <FileName>OLED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\OLED.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\OLED.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_Data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\OLED_Data.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_Data.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\OLED_Data.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

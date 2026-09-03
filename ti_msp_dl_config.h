@@ -118,6 +118,22 @@ extern "C"
 
 
 
+/* Defines for OLED */
+#define OLED_INST                                                           I2C0
+#define OLED_INST_IRQHandler                                     I2C0_IRQHandler
+#define OLED_INST_INT_IRQN                                         I2C0_INT_IRQn
+#define OLED_BUS_SPEED_HZ                                                 400000
+#define GPIO_OLED_SDA_PORT                                                 GPIOA
+#define GPIO_OLED_SDA_PIN                                          DL_GPIO_PIN_0
+#define GPIO_OLED_IOMUX_SDA                                       (IOMUX_PINCM1)
+#define GPIO_OLED_IOMUX_SDA_FUNC                        IOMUX_PINCM1_PF_I2C0_SDA
+#define GPIO_OLED_SCL_PORT                                                 GPIOA
+#define GPIO_OLED_SCL_PIN                                          DL_GPIO_PIN_1
+#define GPIO_OLED_IOMUX_SCL                                       (IOMUX_PINCM2)
+#define GPIO_OLED_IOMUX_SCL_FUNC                        IOMUX_PINCM2_PF_I2C0_SCL
+
+
+
 /* Port definition for Pin Group KEY1 */
 #define KEY1_PORT                                                        (GPIOA)
 
@@ -156,6 +172,7 @@ extern "C"
     void SYSCFG_DL_PWM_LED_init(void);
     void SYSCFG_DL_PWM_MOTO_init(void);
     void SYSCFG_DL_TIMER_0_init(void);
+    void SYSCFG_DL_OLED_init(void);
 
     void SYSCFG_DL_SYSTICK_init(void);
 
