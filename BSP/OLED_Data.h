@@ -37,6 +37,8 @@ extern const uint8_t Diode[];
 extern const unsigned char gImage_back[400];
 extern const unsigned char gImage_test[1024];
 extern const unsigned char gImage_img[1024];
+extern const uint8_t gImage_SrP_raw[512];
+extern const uint8_t gImage_SrP_64x64[512];
 #endif
 
 

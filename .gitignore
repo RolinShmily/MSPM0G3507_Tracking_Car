@@ -20,6 +20,4 @@
 # 放行 Keil 核心工程文件（排除编译生成的 Objects、中间文件及个人配置）
 !keil/
 keil/*
-!keil/*.uvprojx
-!keil/*.sct
-!keil/*.s
+!keil/Objects
