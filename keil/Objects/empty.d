@@ -73,4 +73,4 @@
   ..\source\ti\driverlib\dl_vref.h ..\source\ti\driverlib\dl_wwdt.h \
   ..\source\ti\driverlib\m0p\dl_interrupt.h \
   ..\source\ti\driverlib\m0p\dl_systick.h ..\BSP\OLED.h \
-  ..\BSP\OLED_Data.h ..\BSP\Tick.h
+  ..\BSP\OLED_Data.h ..\BSP\Motor.h ..\BSP\Key.h ..\BSP\Tick.h
