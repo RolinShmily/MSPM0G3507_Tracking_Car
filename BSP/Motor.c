@@ -1,41 +1,52 @@
 #include "Motor.h"
 
+/* ¼ÇÂ¼×óÓÒµç»úµ±Ç°´ø·ûºÅËÙ¶ÈÓë·½Ïò */
+static int g_l_moto_speed = 0;   /* ×óµç»ú (AÂ·) µ±Ç°ËÙ¶È: >0 Õý×ª, <0 ·´×ª */
+static int g_r_moto_speed = 0;   /* ÓÒµç»ú (BÂ·) µ±Ç°ËÙ¶È: >0 Õý×ª, <0 ·´×ª */
+static int g_moto_dir = 1;       /* ·½Ïò: 1 Õý×ª(Forward), -1 ·´×ª(Backward) */
+
 /**
- * @brief ç”µæœºé©±åŠ¨æ¨¡å—åˆå§‹åŒ–
+ * @brief µç»úÇý¶¯Ä£¿é³õÊ¼»¯
  */
 void Motor_Init(void)
 {
-    /* 1. åˆå§‹é€Ÿåº¦è®¾ç½®ä¸º 0 (åˆ¹è½¦åœæ­¢) */
+    /* 1. ³õÊ¼ËÙ¶ÈÉèÖÃÎª 0 (É²³µÍ£Ö¹) */
     Motor_SetSpeed(0);
 
-    /* 2. å¯åŠ¨ TIMG8 (PWM_MOTO) å®šæ—¶å™¨è®¡æ•° */
+    /* 2. Æô¶¯ TIMG8 (PWM_MOTO) ¶¨Ê±Æ÷¼ÆÊý */
     DL_TimerG_startCounter(PWM_MOTO_INST);
 }
 
 /**
- * @brief è®¾ç½®å·¦ç”µæœº (Aè·¯: AIN3-PB22, AIN4-PB23, PWM-PB15)
- * @param Speed é€Ÿåº¦å€¼ (-1000 ~ +1000): >0 æ­£è½¬, <0 åè½¬, =0 åˆ¹è½¦åœæ­¢
+ * @brief ÉèÖÃ×óµç»ú (AÂ·: AIN3-PB22, AIN4-PB23, PWM-PB15)
+ * @param Speed ËÙ¶ÈÖµ (-1000 ~ +1000): >0 Õý×ª, <0 ·´×ª, =0 É²³µÍ£Ö¹
  */
 void L_MOTO_SetSpeed(int Speed)
 {
-    /* é™å¹…ä¿æŠ¤ */
+    /* ÏÞ·ù±£»¤ */
     if (Speed > MOTOR_PWM_PERIOD_MAX)  Speed = MOTOR_PWM_PERIOD_MAX;
     if (Speed < -MOTOR_PWM_PERIOD_MAX) Speed = -MOTOR_PWM_PERIOD_MAX;
 
+    /* ¼ÇÂ¼µ±Ç°ËÙ¶ÈÓë·½Ïò */
+    g_l_moto_speed = Speed;
+    if (Speed != 0) {
+        g_moto_dir = (Speed > 0) ? 1 : -1;
+    }
+
     if (Speed > 0) {
-        /* æ­£è½¬ï¼šAIN3=1, AIN4=0, è¾“å‡ºæ­£å‘ PWM */
+        /* Õý×ª£ºAIN3=1, AIN4=0, Êä³öÕýÏò PWM */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_22_AIN3_PIN);
         DL_GPIO_clearPins(MOTO_PORT, MOTO_PIN_23_AIN4_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, Speed, GPIO_PWM_MOTO_C0_IDX);
     }
     else if (Speed < 0) {
-        /* åè½¬ï¼šAIN3=0, AIN4=1, è¾“å‡ºåå‘ PWM */
+        /* ·´×ª£ºAIN3=0, AIN4=1, Êä³ö·´Ïò PWM */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_23_AIN4_PIN);
         DL_GPIO_clearPins(MOTO_PORT, MOTO_PIN_22_AIN3_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, -Speed, GPIO_PWM_MOTO_C0_IDX);
     }
     else {
-        /* åˆ¹è½¦åœæ­¢ï¼šAIN3=1, AIN4=1, PWM=0 */
+        /* É²³µÍ£Ö¹£ºAIN3=1, AIN4=1, PWM=0 */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_22_AIN3_PIN);
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_23_AIN4_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, 0, GPIO_PWM_MOTO_C0_IDX);
@@ -43,29 +54,35 @@ void L_MOTO_SetSpeed(int Speed)
 }
 
 /**
- * @brief è®¾ç½®å³ç”µæœº (Bè·¯: BIN3-PB25, BIN4-PB26, PWM-PB16)
- * @param Speed é€Ÿåº¦å€¼ (-1000 ~ +1000): >0 æ­£è½¬, <0 åè½¬, =0 åˆ¹è½¦åœæ­¢
+ * @brief ÉèÖÃÓÒµç»ú (BÂ·: BIN3-PB25, BIN4-PB26, PWM-PB16)
+ * @param Speed ËÙ¶ÈÖµ (-1000 ~ +1000): >0 Õý×ª, <0 ·´×ª, =0 É²³µÍ£Ö¹
  */
 void R_MOTO_SetSpeed(int Speed)
 {
-    /* é™å¹…ä¿æŠ¤ */
+    /* ÏÞ·ù±£»¤ */
     if (Speed > MOTOR_PWM_PERIOD_MAX)  Speed = MOTOR_PWM_PERIOD_MAX;
     if (Speed < -MOTOR_PWM_PERIOD_MAX) Speed = -MOTOR_PWM_PERIOD_MAX;
 
+    /* ¼ÇÂ¼µ±Ç°ËÙ¶ÈÓë·½Ïò */
+    g_r_moto_speed = Speed;
+    if (Speed != 0) {
+        g_moto_dir = (Speed > 0) ? 1 : -1;
+    }
+
     if (Speed > 0) {
-        /* æ­£è½¬ï¼šBIN3=1, BIN4=0, è¾“å‡ºæ­£å‘ PWM */
+        /* Õý×ª£ºBIN3=1, BIN4=0, Êä³öÕýÏò PWM */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_25_BIN3_PIN);
         DL_GPIO_clearPins(MOTO_PORT, MOTO_PIN_26_BIN4_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, Speed, GPIO_PWM_MOTO_C1_IDX);
     }
     else if (Speed < 0) {
-        /* åè½¬ï¼šBIN3=0, BIN4=1, è¾“å‡ºåå‘ PWM */
+        /* ·´×ª£ºBIN3=0, BIN4=1, Êä³ö·´Ïò PWM */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_26_BIN4_PIN);
         DL_GPIO_clearPins(MOTO_PORT, MOTO_PIN_25_BIN3_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, -Speed, GPIO_PWM_MOTO_C1_IDX);
     }
     else {
-        /* åˆ¹è½¦åœæ­¢ï¼šBIN3=1, BIN4=1, PWM=0 */
+        /* É²³µÍ£Ö¹£ºBIN3=1, BIN4=1, PWM=0 */
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_25_BIN3_PIN);
         DL_GPIO_setPins(MOTO_PORT, MOTO_PIN_26_BIN4_PIN);
         DL_TimerG_setCaptureCompareValue(PWM_MOTO_INST, 0, GPIO_PWM_MOTO_C1_IDX);
@@ -73,11 +90,47 @@ void R_MOTO_SetSpeed(int Speed)
 }
 
 /**
- * @brief è®¾ç½®ç”µæœºæ€»ä½“é€Ÿåº¦ä¸Žæ–¹å‘ (åŒæ—¶æŽ§åˆ¶ A è·¯ä¸Ž B è·¯)
- * @param Speed é€Ÿåº¦å€¼ (-1000 ~ +1000): >0 æ­£è½¬, <0 åè½¬, =0 åˆ¹è½¦åœæ­¢
+ * @brief ÉèÖÃµç»ú×ÜÌåËÙ¶ÈÓë·½Ïò (Í¬Ê±¿ØÖÆ A Â·Óë B Â·)
+ * @param Speed ËÙ¶ÈÖµ (-1000 ~ +1000): >0 Õý×ª, <0 ·´×ª, =0 É²³µÍ£Ö¹
  */
 void Motor_SetSpeed(int Speed)
 {
     L_MOTO_SetSpeed(Speed);
     R_MOTO_SetSpeed(Speed);
+}
+
+/**
+ * @brief »ñÈ¡×óµç»ú (AÂ·) µ±Ç°ËÙ¶ÈÖµ
+ * @return int ´ø·ûºÅËÙ¶ÈÖµ: >0 Õý×ª, <0 ·´×ª, 0 Í£Ö¹
+ */
+int L_MOTO_GetSpeed(void)
+{
+    return g_l_moto_speed;
+}
+
+/**
+ * @brief »ñÈ¡ÓÒµç»ú (BÂ·) µ±Ç°ËÙ¶ÈÖµ
+ * @return int ´ø·ûºÅËÙ¶ÈÖµ: >0 Õý×ª, <0 ·´×ª, 0 Í£Ö¹
+ */
+int R_MOTO_GetSpeed(void)
+{
+    return g_r_moto_speed;
+}
+
+/**
+ * @brief »ñÈ¡µç»úµ±Ç°×ÜÌåËÙ¶ÈÖµ
+ * @return int ´ø·ûºÅËÙ¶ÈÖµ: >0 Õý×ª, <0 ·´×ª, 0 Í£Ö¹
+ */
+int Motor_GetSpeed(void)
+{
+    return g_l_moto_speed;
+}
+
+/**
+ * @brief »ñÈ¡µç»úµ±Ç°·½Ïò (ÓÉ×î½üÒ»´ÎÉèÖÃµÄ´ø·ûºÅËÙ¶È¾ö¶¨)
+ * @return 1 Õý×ª(Forward), -1 ·´×ª(Backward)
+ */
+int Motor_GetDirection(void)
+{
+    return g_moto_dir;
 }

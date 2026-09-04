@@ -34,29 +34,28 @@
 #include "BSP/Key.h"
 #include "BSP/Tick.h"
 #include "BSP/UART.h"
+#include "BSP/Motor.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(void)
 {
     /* 1. 初始化系统时钟/GPIO/UART0 等外设 (SysConfig 生成) */
     SYSCFG_DL_init();
 
-    /* 2. 初始化 UART_Debug (UART0)：使能 RX 中断并初始化回显状态机 */
+    /* 2. 初始化电机 (TIMG8 PWM) 与 UART (使能 RX 中断) */
+    Motor_Init();
     UART_Init();
 
-    /* 3. 定义按键调控的全局变量 */
-    int Compare = 0;      /* 占空比/速度变量：短按每次 +100，>1000 归 0 */
-    int Font = 0;         /* 方向变量：0=正转(Forward), 1=反转(Backward) */
+    /* 3. 电机带符号速度变量: -1000 ~ +1000 (正数正转, 负数反转, 0停止) */
+    int Speed = 100;
 
-    char txbuff[64];      /* 发送缓冲区 */
-
-    /* 4. 上电欢迎信息 */
-    UART_Send_Str("=== MSPM0G3507 UART Debug Start ===\r\n");
+    /* 4. 上电提示信息 */
+    UART_Send_Str("=== MSPM0G3507 Motor UART Ready ===\r\n");
+    UART_Send_Str("Send Speed number: e.g. 500, -400, 0\r\n");
 
     while (1)
     {
-        /* 5. 串口回显：接收 Windows 串口助手数据并原样回显 */
-        UART_Echo_Process();
-
+        Motor_SetSpeed(Speed);
     }
 }
