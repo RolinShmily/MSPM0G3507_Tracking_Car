@@ -1,30 +1,30 @@
 #include "Tick.h"
 #include "Key.h"
 
-/* æ»´ç­”å®šæ—¶å™¨æ¯«ç§’è®¡æ•°å˜é‡ (æ¯ 1ms ä¸­æ–­ç´¯åŠ  1) */
+/* µÎ´ğ¶¨Ê±Æ÷ºÁÃë¼ÆÊı±äÁ¿ (Ã¿ 1ms ÖĞ¶ÏÀÛ¼Ó 1) */
 static volatile uint32_t g_systick_ms = 0;
 
-/* 1 ç§’ç¡¬ä»¶å®šæ—¶å™¨ä¸­æ–­æ ‡å¿—ä½ */
+/* 1 ÃëÓ²¼ş¶¨Ê±Æ÷ÖĞ¶Ï±êÖ¾Î» */
 static volatile uint8_t g_timer_1s_flag = 0;
 
 /**
- * @brief SysTick 1ms ä¸­æ–­æœåŠ¡å‡½æ•°
+ * @brief SysTick 1ms ÖĞ¶Ï·şÎñº¯Êı
  */
 void SysTick_Handler(void)
 {
     g_systick_ms++;
-    /* 1ms å‘¨æœŸè°ƒç”¨æŒ‰é”®çŠ¶æ€æœºå¤„ç†å‡½æ•° */
+    /* 1ms ÖÜÆÚµ÷ÓÃ°´¼ü×´Ì¬»ú´¦Àíº¯Êı */
     Key_Tick_Handler();
 }
 
 /**
- * @brief TIMER_0 (TIMG0) ç¡¬ä»¶é€šç”¨å®šæ—¶å™¨ä¸­æ–­æœåŠ¡å‡½æ•°
+ * @brief TIMER_0 (TIMG0) Ó²¼şÍ¨ÓÃ¶¨Ê±Æ÷ÖĞ¶Ï·şÎñº¯Êı
  */
 void TIMER_0_INST_IRQHandler(void)
 {
     switch (DL_TimerG_getPendingInterrupt(TIMER_0_INST)) {
         case DL_TIMERG_IIDX_ZERO:
-            g_timer_1s_flag = 1; /* ä»…ç½®ä½æ ‡å¿—ä½ */
+            g_timer_1s_flag = 1; /* ½öÖÃÎ»±êÖ¾Î» */
             break;
         default:
             break;
@@ -32,45 +32,45 @@ void TIMER_0_INST_IRQHandler(void)
 }
 
 /**
- * @brief åˆå§‹åŒ– 1 ç§’ç¡¬ä»¶å®šæ—¶å™¨ (ä½¿èƒ½ NVIC ä¸­æ–­å¹¶å¯åŠ¨ TIMG0 è®¡æ•°)
+ * @brief ³õÊ¼»¯ 1 ÃëÓ²¼ş¶¨Ê±Æ÷ (Ê¹ÄÜ NVIC ÖĞ¶Ï²¢Æô¶¯ TIMG0 ¼ÆÊı)
  */
 void Timer_1s_Init(void)
 {
-    /* ä½¿èƒ½ TIMER_0 (TIMG0) åœ¨ NVIC ä¸­çš„ä¸­æ–­å“åº” */
+    /* Ê¹ÄÜ TIMER_0 (TIMG0) ÔÚ NVIC ÖĞµÄÖĞ¶ÏÏìÓ¦ */
     NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
 
-    /* å¯åŠ¨ TIMG0 å®šæ—¶å™¨è®¡æ•° */
+    /* Æô¶¯ TIMG0 ¶¨Ê±Æ÷¼ÆÊı */
     DL_TimerG_startCounter(TIMER_0_INST);
 }
 
 /**
- * @brief æŸ¥è¯¢ 1 ç§’å®šæ—¶æ˜¯å¦åˆ°è¾¾ï¼ˆè¯»åè‡ªåŠ¨æ¸…é›¶ï¼‰
- * @return 1: 1ç§’å·²åˆ°è¾¾, 0: æœªåˆ°è¾¾
+ * @brief ²éÑ¯ 1 Ãë¶¨Ê±ÊÇ·ñµ½´ï£¨¶Áºó×Ô¶¯ÇåÁã£©
+ * @return 1: 1ÃëÒÑµ½´ï, 0: Î´µ½´ï
  */
 uint8_t Timer_1s_GetFlag(void)
 {
     if (g_timer_1s_flag) {
-        g_timer_1s_flag = 0; /* æ¸…ç©ºæ ‡å¿—ä½ */
+        g_timer_1s_flag = 0; /* Çå¿Õ±êÖ¾Î» */
         return 1;
     }
     return 0;
 }
 
 /**
- * @brief åŸºäºæ»´ç­”å®šæ—¶å™¨ä¸­æ–­çš„æ¯«ç§’å»¶æ—¶å‡½æ•°
- * @param ms éœ€è¦å»¶æ—¶çš„æ¯«ç§’æ•°
+ * @brief »ùÓÚµÎ´ğ¶¨Ê±Æ÷ÖĞ¶ÏµÄºÁÃëÑÓÊ±º¯Êı
+ * @param ms ĞèÒªÑÓÊ±µÄºÁÃëÊı
  */
 void delay_ms(uint32_t ms)
 {
     uint32_t start_time = g_systick_ms;
     while ((g_systick_ms - start_time) < ms) {
-        /* ç­‰å¾… SysTick ä¸­æ–­ç´¯åŠ è®¡æ•°å€¼ */
+        /* µÈ´ı SysTick ÖĞ¶ÏÀÛ¼Ó¼ÆÊıÖµ */
     }
 }
 
 /**
- * @brief è·å–ç³»ç»Ÿå½“å‰è¿è¡Œçš„æ¯«ç§’æ•°
- * @return æ¯«ç§’è®¡æ•°å€¼
+ * @brief »ñÈ¡ÏµÍ³µ±Ç°ÔËĞĞµÄºÁÃëÊı
+ * @return ºÁÃë¼ÆÊıÖµ
  */
 uint32_t get_ticks(void)
 {

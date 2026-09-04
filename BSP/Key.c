@@ -1,30 +1,32 @@
 #include "Key.h"
 #include "Tick.h"
 
-/* æŒ‰é”®çŠ¶æ€æœºå†…éƒ¨çŠ¶æ€æšä¸¾ */
+/* °´¼ü×´Ì¬»úÄÚ²¿×´Ì¬Ã¶¾Ù */
 typedef enum {
-    KEY_STATE_IDLE = 0,        /* ç©ºé—²çŠ¶æ€ï¼ˆç­‰å¾…æŒ‰é”®æŒ‰ä¸‹ï¼‰ */
-    KEY_STATE_DEBOUNCE,        /* æ¶ˆæŠ–çŠ¶æ€ */
-    KEY_STATE_PRESSED,         /* ç¡®è®¤æŒ‰ä¸‹çŠ¶æ€ï¼ˆå¼€å§‹è®¡æ—¶ï¼‰ */
-    KEY_STATE_LONG_HELD        /* é•¿æŒ‰ä¿æŒçŠ¶æ€ï¼ˆç­‰å¾…æ¾æ‰‹ï¼‰ */
+    KEY_STATE_IDLE = 0,        /* ¿ÕÏĞ×´Ì¬£¨µÈ´ı°´¼ü°´ÏÂ£© */
+    KEY_STATE_DEBOUNCE,        /* Ïû¶¶×´Ì¬ */
+    KEY_STATE_PRESSED,         /* È·ÈÏ°´ÏÂ×´Ì¬£¨¿ªÊ¼¼ÆÊ±£© */
+    KEY_STATE_LONG_HELD        /* ³¤°´±£³Ö×´Ì¬£¨µÈ´ıÊÍ·Å£© */
 } KeyState_t;
 
-/* å…¨å±€äº‹ä»¶ä¸çŠ¶æ€æœºå†…éƒ¨å˜é‡ */
-static volatile KeyEvent_t g_key_event = KEY_EVENT_NONE;
-static volatile KeyState_t g_key_state = KEY_STATE_IDLE;
-static volatile uint32_t g_press_ticks = 0;
+/* È«¾ÖÊÂ¼şÓë×´Ì¬»úÄÚ²¿±äÁ¿ */
+static volatile KeyEvent_t g_key_event  = KEY_EVENT_NONE;
+static volatile KeyState_t g_key_state  = KEY_STATE_IDLE;
+static volatile uint32_t   g_press_ticks = 0;
+static volatile uint8_t    g_last_key   = KEY_NONE;
+static volatile uint8_t    g_current_pressed_key = KEY_NONE;
 
 /**
- * @brief å®æ—¶è·å–å½“å‰æŒ‰é”®å¼•è„šç”µå¹³
- * @return KEY_NONE(0), KEY_1(PA28æŒ‰ä¸‹), KEY_2(PA18æŒ‰ä¸‹)
+ * @brief ÊµÊ±¶ÁÈ¡µ±Ç°°´¼üÒı½ÅµçÆ½
+ * @return KEY_NONE(0), KEY_1(PA28°´ÏÂ), KEY_2(PA18°´ÏÂ)
  */
 uint8_t Key_GetData_RealTime(void)
 {
-    /* æ£€æµ‹ PA28 */
+    /* ¼ì²é PA28 (KEY1) */
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
         return KEY_1;
     }
-    /* æ£€æµ‹ PA18 */
+    /* ¼ì²é PA18 (KEY2) */
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
         return KEY_2;
     }
@@ -32,26 +34,26 @@ uint8_t Key_GetData_RealTime(void)
 }
 
 /**
- * @brief å¸¦è½¯ä»¶æ¶ˆæŠ–ä¸æ¾æ‰‹æ£€æµ‹çš„æŒ‰é”®è¯»å–å‡½æ•°
- * @return KEY_NONE(0), KEY_1(PA28æœ‰æ•ˆæŒ‰ä¸‹), KEY_2(PA18æœ‰æ•ˆæŒ‰ä¸‹)
+ * @brief Èí¼şÑÓÊ±Ïû¶¶Ä£Ê½¶ÁÈ¡°´¼ü
+ * @return KEY_NONE(0), KEY_1(PA28ÓĞĞ§°´ÏÂ), KEY_2(PA18ÓĞĞ§°´ÏÂ)
  */
 uint8_t Key_GetData_Debounce(void)
 {
-    /* 1. æ£€æµ‹ PA28 */
+    /* 1. ¼ì²é PA28 */
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
-        delay_ms(20); /* è½¯ä»¶æ¶ˆæŠ– 20ms */
+        delay_ms(20); /* Ó²¼şÏû¶¶ 20ms */
         if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
-            while (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0); /* ç­‰å¾…é‡Šæ”¾ */
+            while (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0); /* µÈ´ıÊÍ·Å */
             delay_ms(10);
             return KEY_1;
         }
     }
 
-    /* 2. æ£€æµ‹ PA18 */
+    /* 2. ¼ì²é PA18 */
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
-        delay_ms(20); /* è½¯ä»¶æ¶ˆæŠ– 20ms */
+        delay_ms(20); /* Ó²¼şÏû¶¶ 20ms */
         if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
-            while (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0); /* ç­‰å¾…é‡Šæ”¾ */
+            while (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0); /* µÈ´ıÊÍ·Å */
             delay_ms(10);
             return KEY_2;
         }
@@ -61,7 +63,7 @@ uint8_t Key_GetData_Debounce(void)
 }
 
 /**
- * @brief 1ms ä¸­æ–­é©±åŠ¨çš„æŒ‰é”®çŠ¶æ€æœº
+ * @brief 1ms ÖĞ¶ÏÇı¶¯µÄ°´¼ü×´Ì¬»ú
  */
 void Key_Tick_Handler(void)
 {
@@ -70,39 +72,44 @@ void Key_Tick_Handler(void)
     switch (g_key_state) {
         case KEY_STATE_IDLE:
             if (current_key != KEY_NONE) {
+                g_current_pressed_key = current_key;
                 g_key_state = KEY_STATE_DEBOUNCE;
                 g_press_ticks = 0;
             }
             break;
 
         case KEY_STATE_DEBOUNCE:
-            if (current_key != KEY_NONE) {
+            if (current_key != KEY_NONE && current_key == g_current_pressed_key) {
                 g_press_ticks++;
-                if (g_press_ticks >= 20) { /* 20ms æ¶ˆæŠ–é€šè¿‡ */
+                if (g_press_ticks >= 20) { /* 20ms Ïû¶¶Í¨¹ı */
                     g_key_state = KEY_STATE_PRESSED;
                 }
             } else {
                 g_key_state = KEY_STATE_IDLE;
                 g_press_ticks = 0;
+                g_current_pressed_key = KEY_NONE;
             }
             break;
 
         case KEY_STATE_PRESSED:
-            if (current_key != KEY_NONE) {
+            if (current_key != KEY_NONE && current_key == g_current_pressed_key) {
                 g_press_ticks++;
-                if (g_press_ticks >= 1000) { /* æŒç»­ 1000ms è§¦å‘é•¿æŒ‰ */
+                if (g_press_ticks >= 1000) { /* ´ïµ½ 1000ms ÅĞ¶¨Îª³¤°´ */
+                    g_last_key  = g_current_pressed_key;
                     g_key_event = KEY_EVENT_LONG_PRESS;
                     g_key_state = KEY_STATE_LONG_HELD;
                 }
             } else {
-                /* 1000ms å‰æ¾æ‰‹ */
+                /* 1000ms Ç°ÊÍ·Å */
                 if (g_press_ticks < 500) {
+                    g_last_key  = g_current_pressed_key;
                     g_key_event = KEY_EVENT_SHORT_PRESS;
                 } else {
                     g_key_event = KEY_EVENT_NONE;
                 }
                 g_key_state = KEY_STATE_IDLE;
                 g_press_ticks = 0;
+                g_current_pressed_key = KEY_NONE;
             }
             break;
 
@@ -110,21 +117,32 @@ void Key_Tick_Handler(void)
             if (current_key == KEY_NONE) {
                 g_key_state = KEY_STATE_IDLE;
                 g_press_ticks = 0;
+                g_current_pressed_key = KEY_NONE;
             }
             break;
 
         default:
             g_key_state = KEY_STATE_IDLE;
+            g_press_ticks = 0;
+            g_current_pressed_key = KEY_NONE;
             break;
     }
 }
 
 /**
- * @brief è·å–æŒ‰é”®äº‹ä»¶å¹¶æ¸…ç©º
+ * @brief »ñÈ¡°´¼üÊÂ¼ş£¨¶Áºó×Ô¶¯Çå¿Õ£©
  */
 KeyEvent_t Key_GetEvent(void)
 {
     KeyEvent_t evt = g_key_event;
     g_key_event = KEY_EVENT_NONE;
     return evt;
+}
+
+/**
+ * @brief »ñÈ¡×îºóÒ»´Î´¥·¢ÊÂ¼şµÄ°´¼ü±àºÅ
+ */
+uint8_t Key_GetLastKey(void)
+{
+    return g_last_key;
 }

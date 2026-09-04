@@ -31,7 +31,6 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "BSP/Key.h"
 #include "BSP/Tick.h"
 #include "BSP/UART.h"
 #include "BSP/Motor.h"
@@ -40,22 +39,29 @@
 
 int main(void)
 {
-    /* 1. 初始化系统时钟/GPIO/UART0 等外设 (SysConfig 生成) */
+    /* 1. 初始化系统时钟/GPIO/TIMG8/UART0 等外设 (SysConfig 自动生成) */
     SYSCFG_DL_init();
 
     /* 2. 初始化电机 (TIMG8 PWM) 与 UART (使能 RX 中断) */
     Motor_Init();
     UART_Init();
 
-    /* 3. 电机带符号速度变量: -1000 ~ +1000 (正数正转, 负数反转, 0停止) */
-    int Speed = 100;
-
-    /* 4. 上电提示信息 */
-    UART_Send_Str("=== MSPM0G3507 Motor UART Ready ===\r\n");
-    UART_Send_Str("Send Speed number: e.g. 500, -400, 0\r\n");
+    /* 3. 上电通过串口打印就绪提示及控制指令格式 */
+    UART_Send_Str("\r\n=========================================\r\n");
+    UART_Send_Str(" MSPM0G3507 Motor UART Control Ready\r\n");
+    UART_Send_Str(" Supported Commands:\r\n");
+    UART_Send_Str("  1. Compare:<0-1000>  (e.g. Compare:500)\r\n");
+    UART_Send_Str("  2. Forward           (Set direction forward)\r\n");
+    UART_Send_Str("  3. Backward          (Set direction backward)\r\n");
+    UART_Send_Str("  4. Signed Speed      (e.g. 600, -400, 0)\r\n");
+    UART_Send_Str("=========================================\r\n\r\n");
 
     while (1)
     {
-        Motor_SetSpeed(Speed);
+        /* 4. 周期性轮询并通过串口输出当前电机运行状态 (500ms 间隔，非阻塞) */
+        UART_Poll_MotorStatus(500);
+
+        /* 5. 主循环延时 1ms，稳定运行节拍 */
+        delay_ms(1);
     }
 }

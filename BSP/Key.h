@@ -2,39 +2,46 @@
 #define __KEY_H
 
 #include "ti_msp_dl_config.h"
+#include <stdint.h>
 
 #define KEY_NONE    0
 #define KEY_1       1   /* PA28 */
 #define KEY_2       2   /* PA18 */
 
-/* æŒ‰é”®äº‹ä»¶æšä¸¾ */
+/* °´¼üÊÂ¼şÃ¶¾Ù */
 typedef enum {
-    KEY_EVENT_NONE = 0,        /* æ— æŒ‰é”®äº‹ä»¶ */
-    KEY_EVENT_SHORT_PRESS,     /* çŸ­æŒ‰äº‹ä»¶ (æŒ‰ä¸‹æ—¶é—´ < 500ms) */
-    KEY_EVENT_LONG_PRESS       /* é•¿æŒ‰äº‹ä»¶ (æŒ‰ä¸‹æ—¶é—´ >= 1000ms) */
+    KEY_EVENT_NONE = 0,        /* ÎŞ°´¼üÊÂ¼ş */
+    KEY_EVENT_SHORT_PRESS,     /* ¶Ì°´ÊÂ¼ş (°´ÏÂÊ±¼ä < 500ms) */
+    KEY_EVENT_LONG_PRESS       /* ³¤°´ÊÂ¼ş (°´ÏÂÊ±¼ä >= 1000ms) */
 } KeyEvent_t;
 
 /**
- * @brief å®æ—¶è·å–æŒ‰é”®å¼•è„šç”µå¹³ï¼ˆå³æ—¶è¯»å–ï¼Œä¸é˜»å¡ï¼‰
- * @return KEY_NONE(0), KEY_1(PA28æŒ‰ä¸‹), KEY_2(PA18æŒ‰ä¸‹)
+ * @brief ÊµÊ±¶ÁÈ¡°´¼üÒı½ÅµçÆ½£¨ÎŞÑÓÊ±¶ÁÈ¡£¬ÓÃÓÚÖĞ¶Ï/ÂÖÑ¯£©
+ * @return KEY_NONE(0), KEY_1(PA28°´ÏÂ), KEY_2(PA18°´ÏÂ)
  */
 uint8_t Key_GetData_RealTime(void);
 
 /**
- * @brief å¸¦è½¯ä»¶æ¶ˆæŠ–ä¸æ¾æ‰‹æ£€æµ‹çš„æŒ‰é”®è¯»å–å‡½æ•°
- * @return KEY_NONE(0), KEY_1(PA28æœ‰æ•ˆæŒ‰ä¸‹), KEY_2(PA18æœ‰æ•ˆæŒ‰ä¸‹)
+ * @brief Èí¼şÑÓÊ±Ïû¶¶Ä£Ê½¶ÁÈ¡°´¼ü
+ * @return KEY_NONE(0), KEY_1(PA28ÓĞĞ§°´ÏÂ), KEY_2(PA18ÓĞĞ§°´ÏÂ)
  */
 uint8_t Key_GetData_Debounce(void);
 
 /**
- * @brief æŒ‰é”®çŠ¶æ€æœºå¤„ç†å‡½æ•°ï¼ˆéœ€åœ¨ 1ms æ»´ç­”å®šæ—¶å™¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­å‘¨æœŸè°ƒç”¨ï¼‰
+ * @brief °´¼ü×´Ì¬»úµÎ´ğ´¦Àí£¨ÓÉ 1ms µÎ´ğ¶¨Ê±Æ÷ÖĞ¶Ï·şÎñº¯ÊıÖÜÆÚµ÷ÓÃ£©
  */
 void Key_Tick_Handler(void);
 
 /**
- * @brief è·å–æŒ‰é”®è§¦å‘äº‹ä»¶ï¼ˆè¯»å–åè‡ªåŠ¨æ¸…ç©ºï¼‰
- * @return KeyEvent_t å½“å‰è§¦å‘çš„æŒ‰é”®äº‹ä»¶
+ * @brief »ñÈ¡°´¼ü´¥·¢ÊÂ¼ş£¨¶ÁÈ¡ºó×Ô¶¯Çå¿ÕÊÂ¼ş£©
+ * @return KeyEvent_t µ±Ç°²úÉúµÄ°´¼üÊÂ¼ş
  */
 KeyEvent_t Key_GetEvent(void);
+
+/**
+ * @brief »ñÈ¡×îºóÒ»´Î´¥·¢ÊÂ¼şµÄÎïÀí°´¼ü±àºÅ
+ * @return KEY_NONE(0), KEY_1(PA28), KEY_2(PA18)
+ */
+uint8_t Key_GetLastKey(void);
 
 #endif /* __KEY_H */

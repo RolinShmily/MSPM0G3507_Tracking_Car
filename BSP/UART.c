@@ -1,25 +1,65 @@
 #include "UART.h"
+#include "Motor.h"
+#include "Tick.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
-/* 回显状态机全局实例 */
-static UART_t g_uart = {
-    .rx_buf     = {0},
-    .rx_head    = 0,
-    .rx_tail    = 0,
-    .echo_state = UART_ECHO_IDLE,
+/* 全局串口结构体与全局变量定义 */
+USART_t myusart = {
+    .rxbuff  = {0},
+    .rxcount = 0,
+    .rxover  = 0,
+    .txbuff  = {0},
 };
 
+uint16_t Compare = 0;   /* 初始速度为 0 */
+bool Font = 0;          /* 初始方向为 0 (Forward 正转) */
+
+static char* data_p;
+static uint8_t msg[100];
+static uint8_t RxState = 0;
+
 /**
- * @brief UART0 (UART_Debug) 中断服务函数：收到一字节写入环形缓冲
+ * @brief UART0 (UART_Debug) 中断服务函数
+ * @note  逐字节接收字符；收到回车/换行表示一帧结束，
+ *        添加 '\0' 结束符、置 rxover=1、原样回显缓冲区、执行 Data_Anylize 解析并重置计数器
  */
 void UART_Debug_INST_IRQHandler(void)
 {
     switch (DL_UART_Main_getPendingInterrupt(UART_Debug_INST)) {
         case DL_UART_MAIN_IIDX_RX: {
             uint8_t rx = DL_UART_Main_receiveData(UART_Debug_INST);
-            uint16_t next = (uint16_t)((g_uart.rx_head + 1) % UART_RX_BUF_SIZE);
-            if (next != g_uart.rx_tail) {       /* 环形缓冲未满则写入 */
-                g_uart.rx_buf[g_uart.rx_head] = rx;
-                g_uart.rx_head = next;
+
+            /* 收到 \r 或 \n 判定为一帧接收完成 */
+            if (rx == '\r' || rx == '\n')
+            {
+                if (myusart.rxcount > 0)
+                {
+                    /* 收到换行，一帧接收完成，添加字符串结束符 */
+                    myusart.rxbuff[myusart.rxcount] = '\0';
+                    myusart.rxover = 1;
+
+                    /* 回显所收到的缓冲区内容 */
+                    UART_Send_Buff(myusart.rxbuff, myusart.rxcount);
+                    UART_Send_Str("\r\n");
+
+                    /* 调用数据解析函数 */
+                    Data_Anylize();
+
+                    /* 重置状态机与计数 */
+                    RxState = 0;
+                    myusart.rxcount = 0;
+                }
+            }
+            else
+            {
+                /* 正常累积接收字符 */
+                if (myusart.rxcount < (sizeof(myusart.rxbuff) - 1))
+                {
+                    myusart.rxbuff[myusart.rxcount++] = rx;
+                }
             }
             break;
         }
@@ -33,94 +73,124 @@ void UART_Debug_INST_IRQHandler(void)
  */
 void UART_Init(void)
 {
-    /* SysConfig 已在 SYSCFG_DL_init() 中完成 UART0 波特率/GPIO 等硬件配置。
-       此处仅使能 UART0 接收中断，供 RX 数据接收使用。 */
+    /* 清除并使能 UART0 中断 */
+    NVIC_ClearPendingIRQ(UART_Debug_INST_INT_IRQN);
     NVIC_EnableIRQ(UART_Debug_INST_INT_IRQN);
 
-    /* 初始化回显状态机 */
-    g_uart.rx_head    = 0;
-    g_uart.rx_tail    = 0;
-    g_uart.echo_state = UART_ECHO_IDLE;
+    myusart.rxcount = 0;
+    myusart.rxover  = 0;
+    RxState         = 0;
 }
 
 /**
- * @brief 串口发送单个字符
- * @param ch 要发送的字符
+ * @brief 串口发送单个字符（采用 DriverLib 标准阻塞接口，彻底防止时序未完成导致的乱码）
  */
 void UART_Send_Byte(char ch)
 {
-    /* 当串口忙的时候等待，不忙的时候再发送传进来的字符 */
-    while (DL_UART_isBusy(UART_Debug_INST) == true) {
-        /* 阻塞等待 UART 空闲 */
-    }
-    /* 发送单个字符 */
-    DL_UART_Main_transmitData(UART_Debug_INST, (uint8_t)ch);
+    DL_UART_Main_transmitDataBlocking(UART_Debug_INST, (uint8_t)ch);
 }
 
 /**
  * @brief 串口发送字符串
- * @param str 以 '\0' 结尾的字符串首地址
  */
 void UART_Send_Str(char *str)
 {
-    /* 当前字符串地址不在结尾 并且 字符串首地址不为空 */
     while (*str != '\0')
     {
-        /* 发送字符串首地址中的字符，并且在发送完成之后首地址自增 */
         UART_Send_Byte(*str++);
     }
 }
 
 /**
- * @brief 串口发送指定长度的缓冲区
- * @param str   缓冲区首地址
- * @param lenth 要发送的字节数
+ * @brief 串口发送指定长度的缓冲区（对齐截图例程）
  */
 void UART_Send_Buff(uint8_t *str, uint8_t lenth)
 {
-    /* 遍历缓冲区，逐字节发送数据 */
     for (uint8_t i = 0; i < lenth; i++)
     {
-        UART_Send_Byte(str[i]);
+        UART_Send_Byte((char)str[i]);
     }
 }
 
 /**
- * @brief 串口回显处理函数（状态机）
- * @note  在 main 主循环中调用。若 RX 环形缓冲中有数据，
- *        则逐个读取并原样回显给上位机。
+ * @brief 数据分析函数（对齐截图 Data_Anylize，并兼容直接输入数字）
  */
-void UART_Echo_Process(void)
+void Data_Anylize(void)
 {
-    switch (g_uart.echo_state)
+    if (myusart.rxover == 1)
     {
-        case UART_ECHO_IDLE:
-            /* 有数据到达则进入接收状态 */
-            if (g_uart.rx_head != g_uart.rx_tail) {
-                g_uart.echo_state = UART_ECHO_RECEIVING;
-            }
-            break;
+        myusart.rxover = 0;
 
-        case UART_ECHO_RECEIVING:
-            /* 读取缓冲中的一字节并回显 */
-            if (g_uart.rx_head != g_uart.rx_tail)
+        /* 1. 匹配 "Compare" 关键字，例如 "Compare:500" */
+        if (strstr((char*)myusart.rxbuff, "Compare") != NULL)
+        {
+            if ((data_p = strstr((char*)myusart.rxbuff, ":")) != NULL)
             {
-                uint8_t c = g_uart.rx_buf[g_uart.rx_tail];
-                g_uart.rx_tail = (uint16_t)((g_uart.rx_tail + 1) % UART_RX_BUF_SIZE);
-
-                /* 逐字节回显给上位机 */
-                UART_Send_Byte((char)c);
+                data_p++;
+                sscanf((char*)data_p, "%s", msg);
+                Compare = (uint16_t)atoi((char*)msg);
             }
-            else
-            {
-                /* 缓冲读空，回到空闲状态 */
-                g_uart.echo_state = UART_ECHO_IDLE;
+        }
+        /* 2. 兼容直接发送纯数字，例如 "500"、"-300"、"100" */
+        else if (isdigit((unsigned char)myusart.rxbuff[0]) || myusart.rxbuff[0] == '-' || myusart.rxbuff[0] == '+')
+        {
+            long num = atol((char*)myusart.rxbuff);
+            if (num < 0) {
+                Font = 1; /* 负数设为反转 */
+                Compare = (uint16_t)(-num);
+            } else {
+                Font = 0; /* 正数设为正转 */
+                Compare = (uint16_t)num;
             }
-            break;
+        }
 
-        case UART_ECHO_SENDING:
-        default:
-            g_uart.echo_state = UART_ECHO_IDLE;
-            break;
+        /* 3. 匹配方向关键字 */
+        if (strstr((char*)myusart.rxbuff, "Forward") != NULL)
+        {
+            Font = 0;
+        }
+        if (strstr((char*)myusart.rxbuff, "Backward") != NULL)
+        {
+            Font = 1;
+        }
+
+        /* 4. 限幅保护 (0 ~ 1000) */
+        if (Compare > MOTOR_PWM_PERIOD_MAX) {
+            Compare = MOTOR_PWM_PERIOD_MAX;
+        }
+
+        /* 5. 立即同步刷新电机驱动 */
+        int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
+        Motor_SetSpeed(real_speed);
+
+        /* 6. 发送 MCU 确认提示 */
+        sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
+                Compare, (Font == 0) ? "Forward" : "Backward");
+        UART_Send_Str((char*)myusart.txbuff);
     }
+}
+
+/**
+ * @brief 串口轮询发送电机状态（左速度、右速度、方向），合成一条字符串周期发出
+ * @param period_ms 发送周期，单位毫秒（建议 500ms）
+ */
+void UART_Poll_MotorStatus(uint32_t period_ms)
+{
+    static uint32_t last_send_tick = 0;
+    uint32_t now = get_ticks();
+
+    /* 距上次发送未达到周期则直接返回，非阻塞 */
+    if ((now - last_send_tick) < period_ms) {
+        return;
+    }
+    last_send_tick = now;
+
+    int l_speed = L_MOTO_GetSpeed();
+    int r_speed = R_MOTO_GetSpeed();
+    int dir     = Motor_GetDirection();
+
+    char txbuf[64];
+    sprintf((char *)txbuf, "L:%d R:%d Dir:%s\r\n",
+            l_speed, r_speed, (dir > 0) ? "Forward" : "Backward");
+    UART_Send_Str((char *)txbuf);
 }

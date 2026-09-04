@@ -3,38 +3,28 @@
 
 #include "ti_msp_dl_config.h"
 #include <stdint.h>
+#include <stdbool.h>
 
-/* ==================== 回显状态机相关定义 ==================== */
-
-/* 接收环形缓冲大小 */
-#define UART_RX_BUF_SIZE    128
-
-/* 回显状态机状态 */
-typedef enum {
-    UART_ECHO_IDLE = 0,     /* 空闲：等待数据到达 */
-    UART_ECHO_RECEIVING,    /* 接收中：正在缓冲数据 */
-    UART_ECHO_SENDING       /* 发送中：将缓冲回显给上位机 */
-} UART_EchoState_t;
-
-/* 串口回显结构体（状态机实例） */
+/* 串口通信结构体（对齐参考例程） */
 typedef struct {
-    volatile uint8_t  rx_buf[UART_RX_BUF_SIZE];  /* RX 环形缓冲 */
-    volatile uint16_t rx_head;                   /* ISR 写指针 */
-    volatile uint16_t rx_tail;                   /* 主循环读指针 */
-    UART_EchoState_t  echo_state;                /* 回显状态机状态 */
-} UART_t;
+    uint8_t rxbuff[100];    /* 接收缓冲区 */
+    uint8_t rxcount;        /* 接收字符计数器 */
+    uint8_t rxover;         /* 接收完成标志位 (1: 一帧接收完毕) */
+    uint8_t txbuff[100];    /* 发送缓冲区 */
+} USART_t;
+
+/* 全局串口结构体与电机状态变量 */
+extern USART_t myusart;
+extern uint16_t Compare;    /* 速度占空比 (0 ~ 1000) */
+extern bool Font;           /* 方向: 0 为正转 (Forward), 1 为反转 (Backward) */
 
 /**
  * @brief UART_Debug (UART0) 串口初始化函数
- * @note  硬件寄存器已由 SysConfig 生成的 SYSCFG_DL_init() 完成配置，
- *        本函数额外使能 UART0 中断并初始化回显状态机。
- * @param None
- * @return None
  */
 void UART_Init(void);
 
 /**
- * @brief 串口发送单个字符
+ * @brief 串口发送单个字符（底层标准阻塞发送）
  * @param ch 要发送的字符
  */
 void UART_Send_Byte(char ch);
@@ -53,10 +43,15 @@ void UART_Send_Str(char *str);
 void UART_Send_Buff(uint8_t *str, uint8_t lenth);
 
 /**
- * @brief 串口回显处理函数（状态机）
- * @note  在 main 主循环中调用。若 RX 缓冲中有数据，
- *        则逐个读取并原样回显给上位机，实现 Windows 串口助手发送→MCU 回显。
+ * @brief 串口接收数据解析函数（对齐截图 Data_Anylize）
+ * @note  在一帧接收完成（收到 \r\n）时调用，解析 Compare 与 Forward/Backward，并同步更新电机
  */
-void UART_Echo_Process(void);
+void Data_Anylize(void);
+
+/**
+ * @brief 串口轮询发送电机状态（左速度、右速度、方向），合成一条字符串周期发出
+ * @param period_ms 发送周期，单位毫秒（建议 500ms，避免 9600 波特率通道堵塞）
+ */
+void UART_Poll_MotorStatus(uint32_t period_ms);
 
 #endif /* __UART_H */
