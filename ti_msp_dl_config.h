@@ -161,13 +161,6 @@ extern "C"
 /* Defines for PIN_28: GPIOA.28 with pinCMx 3 on package pin 35 */
 #define KEY1_PIN_28_PIN                                         (DL_GPIO_PIN_28)
 #define KEY1_PIN_28_IOMUX                                         (IOMUX_PINCM3)
-/* Defines for PIN_18: GPIOA.18 with pinCMx 40 on package pin 11 */
-// pins affected by this interrupt request:["PIN_18"]
-#define KEY1_INT_IRQN                                           (GPIOA_INT_IRQn)
-#define KEY1_INT_IIDX                           (DL_INTERRUPT_GROUP1_IIDX_GPIOA)
-#define KEY1_PIN_18_IIDX                                    (DL_GPIO_IIDX_DIO18)
-#define KEY1_PIN_18_PIN                                         (DL_GPIO_PIN_18)
-#define KEY1_PIN_18_IOMUX                                        (IOMUX_PINCM40)
 /* Port definition for Pin Group MOTO */
 #define MOTO_PORT                                                        (GPIOB)
 
@@ -183,6 +176,36 @@ extern "C"
 /* Defines for PIN_26_BIN4: GPIOB.26 with pinCMx 57 on package pin 28 */
 #define MOTO_PIN_26_BIN4_PIN                                    (DL_GPIO_PIN_26)
 #define MOTO_PIN_26_BIN4_IOMUX                                   (IOMUX_PINCM57)
+/* Port definition for Pin Group GRAYA */
+#define GRAYA_PORT                                                       (GPIOA)
+
+/* Defines for PIN_07_OUT1: GPIOA.7 with pinCMx 14 on package pin 49 */
+#define GRAYA_PIN_07_OUT1_PIN                                    (DL_GPIO_PIN_7)
+#define GRAYA_PIN_07_OUT1_IOMUX                                  (IOMUX_PINCM14)
+/* Defines for PIN_08_OUT2: GPIOA.8 with pinCMx 19 on package pin 54 */
+#define GRAYA_PIN_08_OUT2_PIN                                    (DL_GPIO_PIN_8)
+#define GRAYA_PIN_08_OUT2_IOMUX                                  (IOMUX_PINCM19)
+/* Defines for PIN_18_OUT4: GPIOA.18 with pinCMx 40 on package pin 11 */
+#define GRAYA_PIN_18_OUT4_PIN                                   (DL_GPIO_PIN_18)
+#define GRAYA_PIN_18_OUT4_IOMUX                                  (IOMUX_PINCM40)
+/* Defines for PIN_13_OUT6: GPIOA.13 with pinCMx 35 on package pin 6 */
+#define GRAYA_PIN_13_OUT6_PIN                                   (DL_GPIO_PIN_13)
+#define GRAYA_PIN_13_OUT6_IOMUX                                  (IOMUX_PINCM35)
+/* Defines for PIN_12_OUT7: GPIOA.12 with pinCMx 34 on package pin 5 */
+#define GRAYA_PIN_12_OUT7_PIN                                   (DL_GPIO_PIN_12)
+#define GRAYA_PIN_12_OUT7_IOMUX                                  (IOMUX_PINCM34)
+/* Defines for PIN_22_OUT8: GPIOA.22 with pinCMx 47 on package pin 18 */
+#define GRAYA_PIN_22_OUT8_PIN                                   (DL_GPIO_PIN_22)
+#define GRAYA_PIN_22_OUT8_IOMUX                                  (IOMUX_PINCM47)
+/* Port definition for Pin Group GRAYB */
+#define GRAYB_PORT                                                       (GPIOB)
+
+/* Defines for PIN_19_OUT3: GPIOB.19 with pinCMx 45 on package pin 16 */
+#define GRAYB_PIN_19_OUT3_PIN                                   (DL_GPIO_PIN_19)
+#define GRAYB_PIN_19_OUT3_IOMUX                                  (IOMUX_PINCM45)
+/* Defines for PIN_05_OUT5: GPIOB.5 with pinCMx 18 on package pin 53 */
+#define GRAYB_PIN_05_OUT5_PIN                                    (DL_GPIO_PIN_5)
+#define GRAYB_PIN_05_OUT5_IOMUX                                  (IOMUX_PINCM18)
 
     /* clang-format on */
 

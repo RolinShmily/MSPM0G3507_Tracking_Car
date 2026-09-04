@@ -156,8 +156,7 @@ void Data_Anylize(void)
             int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
             Motor_SetSpeed(real_speed);
 
-            sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s
-",
+            sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
                     Compare, (Font == 0) ? "+" : "-");
             UART_Send_Str((char*)myusart.txbuff);
         }
@@ -183,8 +182,7 @@ void UART_Poll_MotorStatus(uint32_t period_ms)
     int dir     = Motor_GetDirection();
 
     char txbuf[64];
-    sprintf((char *)txbuf, "L:%d R:%d Dir:%s
-",
+    sprintf((char *)txbuf, "L:%d R:%d Dir:%s\r\n",
             l_speed, r_speed, (dir > 0) ? "+" : "-");
     UART_Send_Str((char *)txbuf);
 }

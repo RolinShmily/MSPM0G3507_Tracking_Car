@@ -494,6 +494,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\OLED_Data.h</FilePath>
             </File>
+            <File>
+              <FileName>Gray.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\Gray.c</FilePath>
+            </File>
+            <File>
+              <FileName>Gray.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\Gray.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

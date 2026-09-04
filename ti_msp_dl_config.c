@@ -134,10 +134,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
                                      DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
                                      DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
 
-    DL_GPIO_initDigitalInputFeatures(KEY1_PIN_18_IOMUX,
-                                     DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
-                                     DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
-
     DL_GPIO_initDigitalOutput(MOTO_PIN_22_AIN3_IOMUX);
 
     DL_GPIO_initDigitalOutput(MOTO_PIN_23_AIN4_IOMUX);
@@ -146,17 +142,35 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 
     DL_GPIO_initDigitalOutput(MOTO_PIN_26_BIN4_IOMUX);
 
-    DL_GPIO_setUpperPinsPolarity(KEY1_PORT, DL_GPIO_PIN_18_EDGE_RISE);
-    DL_GPIO_clearInterruptStatus(KEY1_PORT, KEY1_PIN_18_PIN);
-    DL_GPIO_enableInterrupt(KEY1_PORT, KEY1_PIN_18_PIN);
-    DL_GPIO_clearPins(MOTO_PORT, MOTO_PIN_22_AIN3_PIN |
-                                     MOTO_PIN_23_AIN4_PIN |
-                                     MOTO_PIN_25_BIN3_PIN |
-                                     MOTO_PIN_26_BIN4_PIN);
-    DL_GPIO_enableOutput(MOTO_PORT, MOTO_PIN_22_AIN3_PIN |
-                                        MOTO_PIN_23_AIN4_PIN |
-                                        MOTO_PIN_25_BIN3_PIN |
-                                        MOTO_PIN_26_BIN4_PIN);
+    DL_GPIO_initDigitalInput(GRAYA_PIN_07_OUT1_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYA_PIN_08_OUT2_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYA_PIN_18_OUT4_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYA_PIN_13_OUT6_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYA_PIN_12_OUT7_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYA_PIN_22_OUT8_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYB_PIN_19_OUT3_IOMUX);
+
+    DL_GPIO_initDigitalInput(GRAYB_PIN_05_OUT5_IOMUX);
+
+
+    DL_GPIO_clearPins(GPIOB, MOTO_PIN_22_AIN3_PIN |
+                                 MOTO_PIN_23_AIN4_PIN |
+                                 MOTO_PIN_25_BIN3_PIN |
+                                 MOTO_PIN_26_BIN4_PIN |
+                                 GRAYB_PIN_19_OUT3_PIN |
+                                 GRAYB_PIN_05_OUT5_PIN);
+    DL_GPIO_enableOutput(GPIOB, MOTO_PIN_22_AIN3_PIN |
+                                    MOTO_PIN_23_AIN4_PIN |
+                                    MOTO_PIN_25_BIN3_PIN |
+                                    MOTO_PIN_26_BIN4_PIN |
+                                    GRAYB_PIN_19_OUT3_PIN |
+                                    GRAYB_PIN_05_OUT5_PIN);
 }
 
 SYSCONFIG_WEAK void SYSCFG_DL_SYSCTL_init(void)

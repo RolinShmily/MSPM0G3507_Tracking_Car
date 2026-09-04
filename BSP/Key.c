@@ -18,7 +18,7 @@ static volatile uint8_t    g_current_pressed_key = KEY_NONE;
 
 /**
  * @brief 实时读取当前按键引脚电平
- * @return KEY_NONE(0), KEY_1(PA28按下), KEY_2(PA18按下)
+ * @return KEY_NONE(0), KEY_1(PA28按下)
  */
 uint8_t Key_GetData_RealTime(void)
 {
@@ -26,20 +26,15 @@ uint8_t Key_GetData_RealTime(void)
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
         return KEY_1;
     }
-    /* 检查 PA18 (KEY2) */
-    if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
-        return KEY_2;
-    }
     return KEY_NONE;
 }
 
 /**
  * @brief 软件延时消抖模式读取按键
- * @return KEY_NONE(0), KEY_1(PA28有效按下), KEY_2(PA18有效按下)
+ * @return KEY_NONE(0), KEY_1(PA28有效按下)
  */
 uint8_t Key_GetData_Debounce(void)
 {
-    /* 1. 检查 PA28 */
     if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
         delay_ms(20); /* 硬件消抖 20ms */
         if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_28_PIN) == 0) {
@@ -48,17 +43,6 @@ uint8_t Key_GetData_Debounce(void)
             return KEY_1;
         }
     }
-
-    /* 2. 检查 PA18 */
-    if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
-        delay_ms(20); /* 硬件消抖 20ms */
-        if (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0) {
-            while (DL_GPIO_readPins(KEY1_PORT, KEY1_PIN_18_PIN) == 0); /* 等待释放 */
-            delay_ms(10);
-            return KEY_2;
-        }
-    }
-
     return KEY_NONE;
 }
 

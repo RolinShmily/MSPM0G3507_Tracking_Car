@@ -6,7 +6,6 @@
 
 #define KEY_NONE    0
 #define KEY_1       1   /* PA28 */
-#define KEY_2       2   /* PA18 */
 
 /* 按键事件枚举 */
 typedef enum {
@@ -16,19 +15,19 @@ typedef enum {
 } KeyEvent_t;
 
 /**
- * @brief 实时读取按键引脚电平（无延时读取，用于中断/轮询）
- * @return KEY_NONE(0), KEY_1(PA28按下), KEY_2(PA18按下)
+ * @brief 实时读取按键引脚电平
+ * @return KEY_NONE(0), KEY_1(PA28按下)
  */
 uint8_t Key_GetData_RealTime(void);
 
 /**
  * @brief 软件延时消抖模式读取按键
- * @return KEY_NONE(0), KEY_1(PA28有效按下), KEY_2(PA18有效按下)
+ * @return KEY_NONE(0), KEY_1(PA28有效按下)
  */
 uint8_t Key_GetData_Debounce(void);
 
 /**
- * @brief 按键状态机滴答处理（由 1ms 滴答定时器中断服务函数周期调用）
+ * @brief 按键状态机滴答处理（由 1ms 滴答定时器中断周期调用）
  */
 void Key_Tick_Handler(void);
 
@@ -40,7 +39,7 @@ KeyEvent_t Key_GetEvent(void);
 
 /**
  * @brief 获取最后一次触发事件的物理按键编号
- * @return KEY_NONE(0), KEY_1(PA28), KEY_2(PA18)
+ * @return KEY_NONE(0), KEY_1(PA28)
  */
 uint8_t Key_GetLastKey(void);
 
