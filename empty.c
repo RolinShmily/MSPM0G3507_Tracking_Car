@@ -46,22 +46,21 @@ int main(void)
     Motor_Init();
     UART_Init();
 
-    /* 3. 上电通过串口打印就绪提示及控制指令格式 */
+    /* 3. 上电通过串口打印就绪及控制指令格式说明 */
     UART_Send_Str("\r\n=========================================\r\n");
     UART_Send_Str(" MSPM0G3507 Motor UART Control Ready\r\n");
-    UART_Send_Str(" Supported Commands:\r\n");
-    UART_Send_Str("  1. Compare:<0-1000>  (e.g. Compare:500)\r\n");
-    UART_Send_Str("  2. Forward           (Set direction forward)\r\n");
-    UART_Send_Str("  3. Backward          (Set direction backward)\r\n");
-    UART_Send_Str("  4. Signed Speed      (e.g. 600, -400, 0)\r\n");
+    UART_Send_Str(" Simplified Commands:\r\n");
+    UART_Send_Str("   Sp<value> : Set Speed (e.g. Sp100, Sp500)\r\n");
+    UART_Send_Str("   +         : Forward Direction\r\n");
+    UART_Send_Str("   -         : Backward Direction\r\n");
     UART_Send_Str("=========================================\r\n\r\n");
 
     while (1)
     {
-        /* 4. 周期性轮询并通过串口输出当前电机运行状态 (500ms 间隔，非阻塞) */
+        /* 4. 周期性轮询并通过串口输出当前电机状态 (500ms 一次，非阻塞) */
         UART_Poll_MotorStatus(500);
 
-        /* 5. 主循环延时 1ms，稳定运行节拍 */
+        /* 5. 延时 1ms 稳定主循环运行节拍 */
         delay_ms(1);
     }
 }

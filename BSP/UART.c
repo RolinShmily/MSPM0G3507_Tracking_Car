@@ -15,10 +15,9 @@ USART_t myusart = {
 };
 
 uint16_t Compare = 0;   /* 初始速度为 0 */
-bool Font = 0;          /* 初始方向为 0 (Forward 正转) */
+bool Font = 0;          /* 初始方向为 0 (正向/Forward) */
 
 static char* data_p;
-static uint8_t msg[100];
 static uint8_t RxState = 0;
 
 /**
@@ -73,7 +72,6 @@ void UART_Debug_INST_IRQHandler(void)
  */
 void UART_Init(void)
 {
-    /* 清除并使能 UART0 中断 */
     NVIC_ClearPendingIRQ(UART_Debug_INST_INT_IRQN);
     NVIC_EnableIRQ(UART_Debug_INST_INT_IRQN);
 
@@ -83,7 +81,7 @@ void UART_Init(void)
 }
 
 /**
- * @brief 串口发送单个字符（采用 DriverLib 标准阻塞接口，彻底防止时序未完成导致的乱码）
+ * @brief 串口发送单个字符（标准阻塞发送，彻底防止时钟不同步乱码）
  */
 void UART_Send_Byte(char ch)
 {
@@ -102,7 +100,7 @@ void UART_Send_Str(char *str)
 }
 
 /**
- * @brief 串口发送指定长度的缓冲区（对齐截图例程）
+ * @brief 串口发送指定长度的缓冲区
  */
 void UART_Send_Buff(uint8_t *str, uint8_t lenth)
 {
@@ -113,60 +111,56 @@ void UART_Send_Buff(uint8_t *str, uint8_t lenth)
 }
 
 /**
- * @brief 数据分析函数（对齐截图 Data_Anylize，并兼容直接输入数字）
+ * @brief 简化指令数据分析函数
+ *        - 匹配 '+' : 正向
+ *        - 匹配 '-' : 反向
+ *        - 匹配 'Sp' / 'sp' : 提取后方数值作为 Compare (0~1000)
  */
 void Data_Anylize(void)
 {
     if (myusart.rxover == 1)
     {
         myusart.rxover = 0;
+        uint8_t valid_cmd = 0;
 
-        /* 1. 匹配 "Compare" 关键字，例如 "Compare:500" */
-        if (strstr((char*)myusart.rxbuff, "Compare") != NULL)
+        /* 1. 匹配方向命令 '+' 或 '-' */
+        if (strchr((char*)myusart.rxbuff, '+') != NULL)
         {
-            if ((data_p = strstr((char*)myusart.rxbuff, ":")) != NULL)
-            {
+            Font = 0; /* 正向 */
+            valid_cmd = 1;
+        }
+        if (strchr((char*)myusart.rxbuff, '-') != NULL)
+        {
+            Font = 1; /* 反向 */
+            valid_cmd = 1;
+        }
+
+        /* 2. 匹配 "Sp" 或 "sp" 速度命令 (例如 "Sp100", "sp500") */
+        if ((data_p = strstr((char*)myusart.rxbuff, "Sp")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "sp")) != NULL)
+        {
+            data_p += 2;
+            while (*data_p == ' ' || *data_p == '+' || *data_p == '-') {
                 data_p++;
-                sscanf((char*)data_p, "%s", msg);
-                Compare = (uint16_t)atoi((char*)msg);
             }
+            int val = atoi(data_p);
+            if (val < 0) val = 0;
+            if (val > MOTOR_PWM_PERIOD_MAX) val = MOTOR_PWM_PERIOD_MAX;
+            Compare = (uint16_t)val;
+            valid_cmd = 1;
         }
-        /* 2. 兼容直接发送纯数字，例如 "500"、"-300"、"100" */
-        else if (isdigit((unsigned char)myusart.rxbuff[0]) || myusart.rxbuff[0] == '-' || myusart.rxbuff[0] == '+')
+
+        /* 3. 若为有效指令，立即更新电机输出并回复状态 */
+        if (valid_cmd)
         {
-            long num = atol((char*)myusart.rxbuff);
-            if (num < 0) {
-                Font = 1; /* 负数设为反转 */
-                Compare = (uint16_t)(-num);
-            } else {
-                Font = 0; /* 正数设为正转 */
-                Compare = (uint16_t)num;
-            }
-        }
+            int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
+            Motor_SetSpeed(real_speed);
 
-        /* 3. 匹配方向关键字 */
-        if (strstr((char*)myusart.rxbuff, "Forward") != NULL)
-        {
-            Font = 0;
+            sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s
+",
+                    Compare, (Font == 0) ? "+" : "-");
+            UART_Send_Str((char*)myusart.txbuff);
         }
-        if (strstr((char*)myusart.rxbuff, "Backward") != NULL)
-        {
-            Font = 1;
-        }
-
-        /* 4. 限幅保护 (0 ~ 1000) */
-        if (Compare > MOTOR_PWM_PERIOD_MAX) {
-            Compare = MOTOR_PWM_PERIOD_MAX;
-        }
-
-        /* 5. 立即同步刷新电机驱动 */
-        int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
-        Motor_SetSpeed(real_speed);
-
-        /* 6. 发送 MCU 确认提示 */
-        sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
-                Compare, (Font == 0) ? "Forward" : "Backward");
-        UART_Send_Str((char*)myusart.txbuff);
     }
 }
 
@@ -179,7 +173,6 @@ void UART_Poll_MotorStatus(uint32_t period_ms)
     static uint32_t last_send_tick = 0;
     uint32_t now = get_ticks();
 
-    /* 距上次发送未达到周期则直接返回，非阻塞 */
     if ((now - last_send_tick) < period_ms) {
         return;
     }
@@ -190,7 +183,8 @@ void UART_Poll_MotorStatus(uint32_t period_ms)
     int dir     = Motor_GetDirection();
 
     char txbuf[64];
-    sprintf((char *)txbuf, "L:%d R:%d Dir:%s\r\n",
-            l_speed, r_speed, (dir > 0) ? "Forward" : "Backward");
+    sprintf((char *)txbuf, "L:%d R:%d Dir:%s
+",
+            l_speed, r_speed, (dir > 0) ? "+" : "-");
     UART_Send_Str((char *)txbuf);
 }
