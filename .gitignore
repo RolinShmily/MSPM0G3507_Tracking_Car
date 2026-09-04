@@ -13,11 +13,17 @@
 !ti_msp_dl_config.c
 !ti_msp_dl_config.h
 
-# 放行 BSP 模块所有文件
+# 放行 assets 资源与转换工具
+!assets/
+!assets/**
+
+# 放行 BSP 模块所有源码及头文件
 !BSP/
 !BSP/**
 
-# 放行 Keil 核心工程文件（排除编译生成的 Objects、中间文件及个人配置）
+# 放行 Keil 核心工程文件（排除编译生成的 Objects、Listings、日志文件及个人配置）
 !keil/
 keil/*
-!keil/Objects
+!keil/*.uvprojx
+!keil/*.sct
+!keil/*.s
