@@ -31,99 +31,82 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "BSP/OLED.h"
-#include "BSP/Motor.h"
 #include "BSP/Key.h"
 #include "BSP/Tick.h"
+#include "BSP/UART.h"
+#include <stdio.h>
+
+/* UART RX 接收环形缓冲（UART_Init 使能了 RX 中断，必须提供 ISR 覆盖弱定义） */
+#define UART_RX_BUF_SIZE   128
+static volatile uint8_t  g_uart_rx_buf[UART_RX_BUF_SIZE];
+static volatile uint16_t g_uart_rx_head = 0;
+static volatile uint16_t g_uart_rx_tail = 0;
 
 /**
- * @brief 在 OLED 屏幕上分行刷新显示电机的 PWM 占空比、转速档位与运行方向
- * @param gear 当前速度档位 (0 ~ 10)
- * @param dir  当前运行方向 (+1: 正转, -1: 反转)
+ * @brief UART0 (UART_Debug) 中断服务函数：收到一字节写入环形缓冲
  */
-static void OLED_ShowMotorStatus(int gear, int dir)
+void UART_Debug_INST_IRQHandler(void)
 {
-    int duty = gear * 10;                /* 占空比 0 ~ 100% */
-    int speed = dir * (gear * 100);       /* 带符号速度值 -1000 ~ +1000 */
-
-    OLED_Clear();
-
-    /* 第一行：PWM 占空比 (Y=0) */
-    OLED_ShowString(0, 0, "占空比:", OLED_8X16);
-    OLED_ShowNum(56, 0, duty, 3, OLED_8X16);
-    OLED_ShowString(80, 0, "%", OLED_8X16);
-
-    /* 第二行：转速档位与具体速度 (Y=16) */
-    OLED_ShowString(0, 16, "转速:", OLED_8X16);
-    OLED_ShowNum(48, 16, gear, 2, OLED_8X16);
-    OLED_ShowString(64, 16, "档", OLED_8X16);
-    OLED_ShowSignedNum(88, 16, speed, 4, OLED_8X16);
-
-    /* 第三行：运行方向 (Y=32) */
-    OLED_ShowString(0, 32, "方向:", OLED_8X16);
-    if (dir > 0) {
-        OLED_ShowString(48, 32, "正转", OLED_8X16);
-    } else {
-        OLED_ShowString(48, 32, "反转", OLED_8X16);
+    switch (DL_UART_Main_getPendingInterrupt(UART_Debug_INST)) {
+        case DL_UART_MAIN_IIDX_RX: {
+            uint8_t rx = DL_UART_Main_receiveData(UART_Debug_INST);
+            uint16_t next = (uint16_t)((g_uart_rx_head + 1) % UART_RX_BUF_SIZE);
+            if (next != g_uart_rx_tail) {
+                g_uart_rx_buf[g_uart_rx_head] = rx;
+                g_uart_rx_head = next;
+            }
+            break;
+        }
+        default:
+            break;
     }
-
-    /* 刷新显存到 OLED 屏幕显示 */
-    OLED_Update();
 }
 
 int main(void)
 {
-    /* 1. 初始化系统时钟、电源、GPIO、SysTick 及定时器外设 */
+    /* 1. 初始化系统时钟/GPIO/UART0 等外设 (SysConfig 生成) */
     SYSCFG_DL_init();
 
-    /* 2. 初始化 OLED 屏幕 */
-    OLED_Init();
+    /* 2. 初始化 UART_Debug (UART0)：使能 RX 中断 */
+    UART_Init();
 
-    /* 3. 初始化电机驱动 (TIMG8 PWM 输出启动，初始静止) */
-    Motor_Init();
+    /* 3. 定义按键调控的全局变量 */
+    int Compare = 0;      /* 占空比/速度变量：短按每次 +100，>1000 归 0 */
+    int Font = 0;         /* 方向变量：0=正转(Forward), 1=反转(Backward) */
 
-    /* 
-     * 4. 上电首先显示 2 秒图像 (居中展示 64x64 SrP Logo)
-     */
-    OLED_Clear();
-    OLED_ShowImage(32, 0, 64, 64, gImage_SrP_64x64);
-    OLED_Update();
-    delay_ms(2000);
+    char txbuff[64];      /* 发送缓冲区 */
 
-    /* 5. 初始电机状态变量 */
-    int gear = 0;   /* 当前档位 (0 ~ 10 档，每档 10% 占空比) */
-    int dir = 1;    /* 运行方向 (+1: 正转, -1: 反转) */
+    /* 4. 上电欢迎信息 */
+    UART_Send_Str("=== MSPM0G3507 UART Debug Start ===\r\n");
 
-    /* 6. 显示 2s 图像后，切换为分行显示电机状态 UI */
-    OLED_ShowMotorStatus(gear, dir);
-
-    while (1) {
-        /* 7. 获取滴答定时器状态机按键事件 (非阻塞，读后即清) */
+    while (1)
+    {
+        /* 5. 获取按键事件 */
         KeyEvent_t key_evt = Key_GetEvent();
 
-        if (key_evt == KEY_EVENT_SHORT_PRESS) {
-            /* 
-             * 短按事件：分阶加速
-             * 档位 +1，若超过 10 档 (溢出) 则归零
-             */
-            gear++;
-            if (gear > MOTOR_GEAR_MAX) {
-                gear = 0;
+        if (key_evt == KEY_EVENT_SHORT_PRESS)
+        {
+            /* 短按：变量每次 +100，溢出归 0 */
+            Compare += 100;
+            if (Compare > 1000) {
+                Compare = 0;
             }
-            /* 设置电机速度并实时刷新 OLED 显示 */
-            Motor_SetSpeed(dir * (gear * 100));
-            OLED_ShowMotorStatus(gear, dir);
-        } 
-        else if (key_evt == KEY_EVENT_LONG_PRESS) {
-            /* 
-             * 长按事件：PWM 输出与电机转向反向
-             * 方向变量直接取负号 (dir = -dir)
-             */
-            dir = -dir;
-            Motor_SetSpeed(dir * (gear * 100));
-            OLED_ShowMotorStatus(gear, dir);
+            sprintf((char *)txbuff, "Compare:%d\r\n", Compare);
+            UART_Send_Str((char *)txbuff);
+        }
+        else if (key_evt == KEY_EVENT_LONG_PRESS)
+        {
+            /* 长按：方向取反 */
+            Font = !Font;
+            if (Font == 0) {
+                UART_Send_Str("Font:Forward");
+            }
+            else if (Font == 1) {
+                UART_Send_Str("Font:Backward\r\n");
+            }
         }
 
+        /* 6. 延时，避免空转 */
         delay_ms(10);
     }
 }

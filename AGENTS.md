@@ -8,7 +8,7 @@
 
 - **严禁执行任何 Git 命令**：智能体在此工程中**绝对禁止**调用命令行执行任何 `git` 相关操作（包括但不限于 `git status`、`git add`、`git commit`、`git diff`、`git branch`、`git reset` 等）。
 - **版本控制人工管理**：所有 Git 提交、分支及版本控制操作均由用户在 Windows / VS Code 端人工管理。
-
+- **Git调用方式**: 可以用Windows的`PowerShell`来执行`git`相关命令。
 ---
 
 ## 2. 工程分层与文件规范 (Architecture & Hygiene)

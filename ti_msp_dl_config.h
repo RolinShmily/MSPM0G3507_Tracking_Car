@@ -73,6 +73,7 @@ extern "C"
 #define POWER_STARTUP_DELAY                                                (16)
 
 
+
 #define CPUCLK_FREQ                                                     32000000
 
 
@@ -133,6 +134,26 @@ extern "C"
 #define GPIO_OLED_IOMUX_SCL_FUNC                        IOMUX_PINCM2_PF_I2C0_SCL
 
 
+/* Defines for UART_Debug */
+#define UART_Debug_INST                                                    UART0
+#define UART_Debug_INST_FREQUENCY                                        4000000
+#define UART_Debug_INST_IRQHandler                              UART0_IRQHandler
+#define UART_Debug_INST_INT_IRQN                                  UART0_INT_IRQn
+#define GPIO_UART_Debug_RX_PORT                                            GPIOA
+#define GPIO_UART_Debug_TX_PORT                                            GPIOA
+#define GPIO_UART_Debug_RX_PIN                                    DL_GPIO_PIN_11
+#define GPIO_UART_Debug_TX_PIN                                    DL_GPIO_PIN_10
+#define GPIO_UART_Debug_IOMUX_RX                                 (IOMUX_PINCM22)
+#define GPIO_UART_Debug_IOMUX_TX                                 (IOMUX_PINCM21)
+#define GPIO_UART_Debug_IOMUX_RX_FUNC                  IOMUX_PINCM22_PF_UART0_RX
+#define GPIO_UART_Debug_IOMUX_TX_FUNC                  IOMUX_PINCM21_PF_UART0_TX
+#define UART_Debug_BAUD_RATE                                              (9600)
+#define UART_Debug_IBRD_4_MHZ_9600_BAUD                                     (26)
+#define UART_Debug_FBRD_4_MHZ_9600_BAUD                                      (3)
+
+
+
+
 
 /* Port definition for Pin Group KEY1 */
 #define KEY1_PORT                                                        (GPIOA)
@@ -173,6 +194,7 @@ extern "C"
     void SYSCFG_DL_PWM_MOTO_init(void);
     void SYSCFG_DL_TIMER_0_init(void);
     void SYSCFG_DL_OLED_init(void);
+    void SYSCFG_DL_UART_Debug_init(void);
 
     void SYSCFG_DL_SYSTICK_init(void);
 
