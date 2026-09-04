@@ -36,38 +36,12 @@
 #include "BSP/UART.h"
 #include <stdio.h>
 
-/* UART RX 接收环形缓冲（UART_Init 使能了 RX 中断，必须提供 ISR 覆盖弱定义） */
-#define UART_RX_BUF_SIZE   128
-static volatile uint8_t  g_uart_rx_buf[UART_RX_BUF_SIZE];
-static volatile uint16_t g_uart_rx_head = 0;
-static volatile uint16_t g_uart_rx_tail = 0;
-
-/**
- * @brief UART0 (UART_Debug) 中断服务函数：收到一字节写入环形缓冲
- */
-void UART_Debug_INST_IRQHandler(void)
-{
-    switch (DL_UART_Main_getPendingInterrupt(UART_Debug_INST)) {
-        case DL_UART_MAIN_IIDX_RX: {
-            uint8_t rx = DL_UART_Main_receiveData(UART_Debug_INST);
-            uint16_t next = (uint16_t)((g_uart_rx_head + 1) % UART_RX_BUF_SIZE);
-            if (next != g_uart_rx_tail) {
-                g_uart_rx_buf[g_uart_rx_head] = rx;
-                g_uart_rx_head = next;
-            }
-            break;
-        }
-        default:
-            break;
-    }
-}
-
 int main(void)
 {
     /* 1. 初始化系统时钟/GPIO/UART0 等外设 (SysConfig 生成) */
     SYSCFG_DL_init();
 
-    /* 2. 初始化 UART_Debug (UART0)：使能 RX 中断 */
+    /* 2. 初始化 UART_Debug (UART0)：使能 RX 中断并初始化回显状态机 */
     UART_Init();
 
     /* 3. 定义按键调控的全局变量 */
@@ -81,32 +55,8 @@ int main(void)
 
     while (1)
     {
-        /* 5. 获取按键事件 */
-        KeyEvent_t key_evt = Key_GetEvent();
+        /* 5. 串口回显：接收 Windows 串口助手数据并原样回显 */
+        UART_Echo_Process();
 
-        if (key_evt == KEY_EVENT_SHORT_PRESS)
-        {
-            /* 短按：变量每次 +100，溢出归 0 */
-            Compare += 100;
-            if (Compare > 1000) {
-                Compare = 0;
-            }
-            sprintf((char *)txbuff, "Compare:%d\r\n", Compare);
-            UART_Send_Str((char *)txbuff);
-        }
-        else if (key_evt == KEY_EVENT_LONG_PRESS)
-        {
-            /* 长按：方向取反 */
-            Font = !Font;
-            if (Font == 0) {
-                UART_Send_Str("Font:Forward");
-            }
-            else if (Font == 1) {
-                UART_Send_Str("Font:Backward\r\n");
-            }
-        }
-
-        /* 6. 延时，避免空转 */
-        delay_ms(10);
     }
 }
