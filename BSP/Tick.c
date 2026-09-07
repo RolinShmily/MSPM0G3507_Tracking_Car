@@ -1,6 +1,7 @@
 #include "Tick.h"
 #include "Key.h"
 #include "Encoder.h"
+#include "SpeedCtrl.h"
 
 /* 滴答定时器累积计数变量 (每 1ms 中断累加 1) */
 static volatile uint32_t g_systick_ms = 0;
@@ -18,6 +19,8 @@ void SysTick_Handler(void)
     Key_Tick_Handler();
     /* 1ms 周期调用编码器处理: 10ms 速度采样, 1s 转速换算 */
     Encoder_Tick_Handler();
+    /* 1ms 周期调用速度闭环处理: 内部 10ms 执行一次增量式 PID */
+    SpeedCtrl_Tick_Handler();
 }
 
 /**

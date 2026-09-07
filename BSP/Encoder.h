@@ -5,7 +5,7 @@
 
 /* 编码器配置参数 */
 #define ENCODER_GEAR_RATIO      20      /* 减速比 1:20 (电机轴:输出轴) */
-#define ENCODER_PPR             1       /* 编码器每转脉冲数 (电机轴), 请按实际编码器修改 */
+#define ENCODER_PPR             13      /* 编码器每转脉冲数 (电机轴), 预设 13 线霍尔, 待实测校准 */
 #define ENCODER_SAMPLE_MS       10      /* 速度采样周期 (ms), 由 SysTick 1ms 中断驱动 */
 #define ENCODER_SAMPLES_PER_SEC (1000 / ENCODER_SAMPLE_MS)
 
@@ -31,5 +31,18 @@ int Encoder_GetLRPM(void);
  * @return int 右轮转速 (RPM)
  */
 int Encoder_GetRRPM(void);
+
+/**
+ * @brief 获取左轮最近一个 10ms 采样窗的脉冲增量 (带符号)
+ * @note  PID 闭环的快速速度反馈源: 换算 RPM = 增量*6000/(减速比*PPR)
+ * @return int32_t 左轮 10ms 脉冲增量
+ */
+int32_t Encoder_GetL10msDelta(void);
+
+/**
+ * @brief 获取右轮最近一个 10ms 采样窗的脉冲增量 (带符号)
+ * @return int32_t 右轮 10ms 脉冲增量
+ */
+int32_t Encoder_GetR10msDelta(void);
 
 #endif /* __ENCODER_H */

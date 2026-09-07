@@ -8,6 +8,10 @@ static volatile int32_t Encode_CNT_RR = 0;   /* 右轮: OA4 触发计数, OB4 判向 */
 static volatile int32_t g_rl_speed_rpm = 0;
 static volatile int32_t g_rr_speed_rpm = 0;
 
+/* 左右轮最近一个 10ms 采样窗的脉冲增量 (PID 快速反馈源) */
+static volatile int32_t g_l_delta10ms = 0;
+static volatile int32_t g_r_delta10ms = 0;
+
 /**
  * @brief 编码器模块初始化: 清零计数器, 使能 GPIO 中断
  */
@@ -78,8 +82,10 @@ void Encoder_Tick_Handler(void)
     /* 累计本 10ms 窗口内的脉冲增量 */
     int32_t now_rl = Encode_CNT_RL;
     int32_t now_rr = Encode_CNT_RR;
-    acc_rl += now_rl - last_rl;
-    acc_rr += now_rr - last_rr;
+    g_l_delta10ms = now_rl - last_rl;
+    g_r_delta10ms = now_rr - last_rr;
+    acc_rl += g_l_delta10ms;
+    acc_rr += g_r_delta10ms;
     last_rl = now_rl;
     last_rr = now_rr;
 
@@ -107,4 +113,20 @@ int Encoder_GetLRPM(void)
 int Encoder_GetRRPM(void)
 {
     return g_rr_speed_rpm;
+}
+
+/**
+ * @brief 获取左轮最近一个 10ms 采样窗的脉冲增量 (带符号)
+ */
+int32_t Encoder_GetL10msDelta(void)
+{
+    return g_l_delta10ms;
+}
+
+/**
+ * @brief 获取右轮最近一个 10ms 采样窗的脉冲增量 (带符号)
+ */
+int32_t Encoder_GetR10msDelta(void)
+{
+    return g_r_delta10ms;
 }

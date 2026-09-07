@@ -33,6 +33,7 @@
 #include "BSP/UART.h"
 #include "BSP/Motor.h"
 #include "BSP/Encoder.h"
+#include "BSP/SpeedCtrl.h"
 #include "BSP/OLED.h"
 #include "BSP/Gray.h"
 #include <stdio.h>
@@ -49,6 +50,7 @@ int main(void)
     OLED_Init();
     Gray_Init();
     Encoder_Init();
+    SpeedCtrl_Init();
 
     /* 3. 上电通过串口打印帮助信息, 提示指令格式说明 */
     UART_Send_Str("\r\n=========================================\r\n");

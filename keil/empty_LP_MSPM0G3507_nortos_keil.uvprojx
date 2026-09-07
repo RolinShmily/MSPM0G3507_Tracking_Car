@@ -514,6 +514,26 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\Encoder.h</FilePath>
             </File>
+            <File>
+              <FileName>PID.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\PID.c</FilePath>
+            </File>
+            <File>
+              <FileName>PID.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\PID.h</FilePath>
+            </File>
+            <File>
+              <FileName>SpeedCtrl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\SpeedCtrl.c</FilePath>
+            </File>
+            <File>
+              <FileName>SpeedCtrl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\SpeedCtrl.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

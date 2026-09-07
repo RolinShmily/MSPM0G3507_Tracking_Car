@@ -1,6 +1,7 @@
 #include "UART.h"
 #include "Motor.h"
 #include "Encoder.h"
+#include "SpeedCtrl.h"
 #include "Tick.h"
 #include <stdio.h>
 #include <string.h>
@@ -145,49 +146,156 @@ void UART_Send_Buff(uint8_t *str, uint8_t lenth)
  *        - 匹配 '-' : 反向
  *        - 匹配 'Sp' / 'sp' : 提取后方数值作为 Compare (0~1000)
  */
+/**
+ * @brief 解析十进制浮点数 (可选小数部分, 最多3位), 供 PID 参数命令使用
+ * @note  不依赖 atof, 避免 microlib 浮点格式化开销
+ */
+static float Parse_Float(const char *s)
+{
+    float v = 0.0f;
+    int neg = 0;
+    float frac = 0.1f;
+
+    if (*s == '-') { neg = 1; s++; }
+    else if (*s == '+') { s++; }
+
+    while (*s >= '0' && *s <= '9') {
+        v = v * 10.0f + (float)(*s++ - '0');
+    }
+    if (*s == '.') {
+        s++;
+        while (*s >= '0' && *s <= '9') {
+            v += (float)(*s++ - '0') * frac;
+            frac *= 0.1f;
+        }
+    }
+    return neg ? -v : v;
+}
+
 void Data_Anylize(void)
 {
     if (myusart.rxover == 1)
     {
         myusart.rxover = 0;
         uint8_t valid_cmd = 0;
+        uint8_t handled = 0;   /* 新命令已处理时, 跳过旧版 Sp/+/- 逻辑 */
 
-        /* 1. 匹配方向命令 '+' 或 '-' */
-        if (strchr((char*)myusart.rxbuff, '+') != NULL)
+        /* ---- 闭环控制命令 (参考报告表 5-1) ---- */
+
+        /* SPD=<rpm>: 设置闭环目标转速 (左右轮相同) */
+        if ((data_p = strstr((char*)myusart.rxbuff, "SPD")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "spd")) != NULL)
         {
-            Font = 0; /* 正向 */
+            data_p += 3;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            int val = atoi(data_p);
+            SpeedCtrl_SetTarget(val);
+            handled = 1;
             valid_cmd = 1;
-        }
-        if (strchr((char*)myusart.rxbuff, '-') != NULL)
-        {
-            Font = 1; /* 反向 */
-            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] PID target=%d RPM\r\n", val);
+            UART_Send_Str((char*)myusart.txbuff);
         }
 
-        /* 2. 匹配 "Sp" 或 "sp" 速度命令 (例如 "Sp100", "sp500") */
-        if ((data_p = strstr((char*)myusart.rxbuff, "Sp")) != NULL ||
-            (data_p = strstr((char*)myusart.rxbuff, "sp")) != NULL)
+        /* KP=<f>: 设置比例系数 */
+        if ((data_p = strstr((char*)myusart.rxbuff, "KP")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "kp")) != NULL)
         {
             data_p += 2;
-            while (*data_p == ' ' || *data_p == '+' || *data_p == '-') {
-                data_p++;
-            }
-            int val = atoi(data_p);
-            if (val < 0) val = 0;
-            if (val > MOTOR_PWM_PERIOD_MAX) val = MOTOR_PWM_PERIOD_MAX;
-            Compare = (uint16_t)val;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            SpeedCtrl_SetParams(Parse_Float(data_p),
+                                SpeedCtrl_GetKi(), SpeedCtrl_GetKd());
+            handled = 1;
             valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] KP=%d (x0.001)\r\n",
+                    (int)(SpeedCtrl_GetKp() * 1000.0f));
+            UART_Send_Str((char*)myusart.txbuff);
         }
 
-        /* 3. 若为有效指令，立即更新电机输出并回复状态 */
-        if (valid_cmd)
+        /* KI=<f>: 设置积分系数 */
+        if ((data_p = strstr((char*)myusart.rxbuff, "KI")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "ki")) != NULL)
         {
-            int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
-            Motor_SetSpeed(real_speed);
-
-            sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
-                    Compare, (Font == 0) ? "+" : "-");
+            data_p += 2;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            SpeedCtrl_SetParams(SpeedCtrl_GetKp(), Parse_Float(data_p),
+                                SpeedCtrl_GetKd());
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] KI=%d (x0.001)\r\n",
+                    (int)(SpeedCtrl_GetKi() * 1000.0f));
             UART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* KD=<f>: 设置微分系数 */
+        if ((data_p = strstr((char*)myusart.rxbuff, "KD")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "kd")) != NULL)
+        {
+            data_p += 2;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            SpeedCtrl_SetParams(SpeedCtrl_GetKp(), SpeedCtrl_GetKi(),
+                                Parse_Float(data_p));
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] KD=%d (x0.001)\r\n",
+                    (int)(SpeedCtrl_GetKd() * 1000.0f));
+            UART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* PID=1/0: 使能/关闭速度闭环 */
+        if ((data_p = strstr((char*)myusart.rxbuff, "PID")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "pid")) != NULL)
+        {
+            data_p += 3;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            int val = atoi(data_p);
+            SpeedCtrl_Enable(val ? 1 : 0);
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] PID enable=%d\r\n",
+                    SpeedCtrl_IsEnabled());
+            UART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* ---- 旧版开环命令: '+' / '-' / Sp<value> (闭环命令未处理时才执行) ---- */
+        if (!handled)
+        {
+            /* 1. 匹配方向命令 '+' 或 '-' */
+            if (strchr((char*)myusart.rxbuff, '+') != NULL)
+            {
+                Font = 0; /* 正向 */
+                valid_cmd = 1;
+            }
+            if (strchr((char*)myusart.rxbuff, '-') != NULL)
+            {
+                Font = 1; /* 反向 */
+                valid_cmd = 1;
+            }
+
+            /* 2. 匹配 "Sp" 或 "sp" 速度命令 (例如 "Sp100", "sp500") */
+            if ((data_p = strstr((char*)myusart.rxbuff, "Sp")) != NULL ||
+                (data_p = strstr((char*)myusart.rxbuff, "sp")) != NULL)
+            {
+                data_p += 2;
+                while (*data_p == ' ' || *data_p == '+' || *data_p == '-') {
+                    data_p++;
+                }
+                int val = atoi(data_p);
+                if (val < 0) val = 0;
+                if (val > MOTOR_PWM_PERIOD_MAX) val = MOTOR_PWM_PERIOD_MAX;
+                Compare = (uint16_t)val;
+                valid_cmd = 1;
+            }
+
+            /* 3. 若为有效指令，立即更新电机输出并回复状态 */
+            if (valid_cmd)
+            {
+                int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
+                Motor_SetSpeed(real_speed);
+
+                sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
+                        Compare, (Font == 0) ? "+" : "-");
+                UART_Send_Str((char*)myusart.txbuff);
+            }
         }
     }
 }
