@@ -241,6 +241,20 @@ void Data_Anylize(void)
             UART_Send_Str((char*)myusart.txbuff);
         }
 
+        /* CNT: 查询并清零编码器原始脉冲计数 (PPR 实测用:
+         * 手转输出轴一整圈, 再次查询, 读数绝对值/20 = PPR) */
+        if ((data_p = strstr((char*)myusart.rxbuff, "CNT")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "cnt")) != NULL)
+        {
+            int32_t cnt_rl = 0, cnt_rr = 0;
+            Encoder_GetAndClearCNT(&cnt_rl, &cnt_rr);
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] CNT RL=%d RR=%d (1 output rev / 20 = PPR)\r\n",
+                    cnt_rl, cnt_rr);
+            UART_Send_Str((char*)myusart.txbuff);
+        }
+
         /* PID=1/0: 使能/关闭速度闭环 */
         if ((data_p = strstr((char*)myusart.rxbuff, "PID")) != NULL ||
             (data_p = strstr((char*)myusart.rxbuff, "pid")) != NULL)
@@ -271,12 +285,12 @@ void Data_Anylize(void)
                 valid_cmd = 1;
             }
 
-            /* 2. 匹配 "Sp" 或 "sp" 速度命令 (例如 "Sp100", "sp500") */
-            if ((data_p = strstr((char*)myusart.rxbuff, "Sp")) != NULL ||
-                (data_p = strstr((char*)myusart.rxbuff, "sp")) != NULL)
+            /* 2. 匹配 "PWM=" 速度命令 (例如 "PWM=100", "pwm=500") */
+            if ((data_p = strstr((char*)myusart.rxbuff, "PWM")) != NULL ||
+                (data_p = strstr((char*)myusart.rxbuff, "pwm")) != NULL)
             {
-                data_p += 2;
-                while (*data_p == ' ' || *data_p == '+' || *data_p == '-') {
+                data_p += 3;   /* 跳过关键字 "PWM" (3字符), 再跳过 '=' 等符号 */
+                while (*data_p == '=' || *data_p == '+' || *data_p == '-') {
                     data_p++;
                 }
                 int val = atoi(data_p);
@@ -292,7 +306,7 @@ void Data_Anylize(void)
                 int real_speed = (Font == 0) ? (int)Compare : -(int)Compare;
                 Motor_SetSpeed(real_speed);
 
-                sprintf((char*)myusart.txbuff, "[MCU OK] Speed=%d, Dir=%s\r\n",
+                sprintf((char*)myusart.txbuff, "[MCU OK] PWM=%d, Dir=%s\r\n",
                         Compare, (Font == 0) ? "+" : "-");
                 UART_Send_Str((char*)myusart.txbuff);
             }

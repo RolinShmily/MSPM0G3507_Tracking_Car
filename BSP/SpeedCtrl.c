@@ -15,10 +15,11 @@
  *     = 增量 * 6000 / (ENCODER_GEAR_RATIO * ENCODER_PPR)          */
 #define SPEEDCTRL_FB_DEN        (ENCODER_GEAR_RATIO * ENCODER_PPR)
 
-/* 默认 PID 参数 (串口实测整定: 80/150/-100 RPM 全工况锁定, PWM 抖动最小; Kd=0 避免放大量化噪声)
- * 运行时可通过 KP=/KI=/KD= 在线修改 */
-#define SPEEDCTRL_KP_DEFAULT    1.2f
-#define SPEEDCTRL_KI_DEFAULT    0.3f
+/* 默认 PID 参数 (串口实测整定@PPR=11: 扫参 Kp=1.2/0.8/0.5/0.35 对比,
+ * Kp=0.35+Ki=0.15 时 SPD=100 下 PWM spread 从 ±23% 降至 ±5%, RPM 锁定 100±1;
+ * Kd=0 避免放大量化噪声。运行时可通过 KP=/KI=/KD= 在线修改 */
+#define SPEEDCTRL_KP_DEFAULT    0.35f
+#define SPEEDCTRL_KI_DEFAULT    0.15f
 #define SPEEDCTRL_KD_DEFAULT    0.0f
 
 static PID_t  s_pid_l;                  /* 左轮 PID 控制器 */

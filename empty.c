@@ -56,7 +56,7 @@ int main(void)
     UART_Send_Str("\r\n=========================================\r\n");
     UART_Send_Str(" MSPM0G3507 Motor UART Control Ready\r\n");
     UART_Send_Str(" Simplified Commands:\r\n");
-    UART_Send_Str("   Sp<value> : Set Speed (e.g. Sp100, Sp500)\r\n");
+    UART_Send_Str("   pwm=<value> : Set Speed (e.g. pwm=100, pwm=500)\r\n");
     UART_Send_Str("   +         : Forward Direction\r\n");
     UART_Send_Str("   -         : Backward Direction\r\n");
     UART_Send_Str("=========================================\r\n\r\n");

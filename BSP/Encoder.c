@@ -130,3 +130,15 @@ int32_t Encoder_GetR10msDelta(void)
 {
     return g_r_delta10ms;
 }
+
+/**
+ * @brief 读取左右轮累计脉冲计数并清零 (PPR 实测用)
+ * @note  int32 对齐读取为原子操作; 清零与 ISR 自增并发不会丢失后续脉冲
+ */
+void Encoder_GetAndClearCNT(int32_t *rl, int32_t *rr)
+{
+    *rl = Encode_CNT_RL;
+    *rr = Encode_CNT_RR;
+    Encode_CNT_RL = 0;
+    Encode_CNT_RR = 0;
+}

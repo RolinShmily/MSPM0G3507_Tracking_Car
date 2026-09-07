@@ -5,7 +5,7 @@
 
 /* 编码器配置参数 */
 #define ENCODER_GEAR_RATIO      20      /* 减速比 1:20 (电机轴:输出轴) */
-#define ENCODER_PPR             13      /* 编码器每转脉冲数 (电机轴), 预设 13 线霍尔, 待实测校准 */
+#define ENCODER_PPR             11      /* 编码器每转脉冲数 (电机轴), 实测标定: 手转输出轴5圈计数1143, 1143/100≈11线 */
 #define ENCODER_SAMPLE_MS       10      /* 速度采样周期 (ms), 由 SysTick 1ms 中断驱动 */
 #define ENCODER_SAMPLES_PER_SEC (1000 / ENCODER_SAMPLE_MS)
 
@@ -44,5 +44,14 @@ int32_t Encoder_GetL10msDelta(void);
  * @return int32_t 右轮 10ms 脉冲增量
  */
 int32_t Encoder_GetR10msDelta(void);
+
+/**
+ * @brief 读取左右轮累计脉冲计数并清零 (PPR 实测用)
+ * @note  读数 = 自上次调用以来的原始脉冲数 (带符号, 由转向决定正负)。
+ *        手动转动输出轴一整圈, 读数绝对值 / 减速比(20) = PPR
+ * @param rl 输出: 左轮累计脉冲数
+ * @param rr 输出: 右轮累计脉冲数
+ */
+void Encoder_GetAndClearCNT(int32_t *rl, int32_t *rr);
 
 #endif /* __ENCODER_H */
