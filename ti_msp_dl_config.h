@@ -206,6 +206,32 @@ extern "C"
 /* Defines for PIN_05_OUT5: GPIOB.5 with pinCMx 18 on package pin 53 */
 #define GRAYB_PIN_05_OUT5_PIN                                    (DL_GPIO_PIN_5)
 #define GRAYB_PIN_05_OUT5_IOMUX                                  (IOMUX_PINCM18)
+/* Defines for OA3: GPIOA.31 with pinCMx 6 on package pin 39 */
+#define Encoder_OA3_PORT                                                 (GPIOA)
+// pins affected by this interrupt request:["OA3","OA4"]
+#define Encoder_GPIOA_INT_IRQN                                  (GPIOA_INT_IRQn)
+#define Encoder_GPIOA_INT_IIDX                  (DL_INTERRUPT_GROUP1_IIDX_GPIOA)
+#define Encoder_OA3_IIDX                                    (DL_GPIO_IIDX_DIO31)
+#define Encoder_OA3_PIN                                         (DL_GPIO_PIN_31)
+#define Encoder_OA3_IOMUX                                         (IOMUX_PINCM6)
+/* Defines for OA4: GPIOA.29 with pinCMx 4 on package pin 36 */
+#define Encoder_OA4_PORT                                                 (GPIOA)
+#define Encoder_OA4_IIDX                                    (DL_GPIO_IIDX_DIO29)
+#define Encoder_OA4_PIN                                         (DL_GPIO_PIN_29)
+#define Encoder_OA4_IOMUX                                         (IOMUX_PINCM4)
+/* Defines for OB3: GPIOB.13 with pinCMx 30 on package pin 1 */
+#define Encoder_OB3_PORT                                                 (GPIOB)
+// pins affected by this interrupt request:["OB3","OB4"]
+#define Encoder_GPIOB_INT_IRQN                                  (GPIOB_INT_IRQn)
+#define Encoder_GPIOB_INT_IIDX                  (DL_INTERRUPT_GROUP1_IIDX_GPIOB)
+#define Encoder_OB3_IIDX                                    (DL_GPIO_IIDX_DIO13)
+#define Encoder_OB3_PIN                                         (DL_GPIO_PIN_13)
+#define Encoder_OB3_IOMUX                                        (IOMUX_PINCM30)
+/* Defines for OB4: GPIOB.3 with pinCMx 16 on package pin 51 */
+#define Encoder_OB4_PORT                                                 (GPIOB)
+#define Encoder_OB4_IIDX                                     (DL_GPIO_IIDX_DIO3)
+#define Encoder_OB4_PIN                                          (DL_GPIO_PIN_3)
+#define Encoder_OB4_IOMUX                                        (IOMUX_PINCM16)
 
     /* clang-format on */
 

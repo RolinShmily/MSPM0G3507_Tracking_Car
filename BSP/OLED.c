@@ -92,7 +92,17 @@ uint8_t OLED_Buff[50];
  */
 void IIC_WriteReg_HW(I2C_Regs *hi2c, uint8_t addr, uint8_t regaddr, uint8_t* regdata, uint16_t num)
 {
-    uint8_t temp[num + 1]; // 用于存储寄存器地址和数据的临时缓冲区
+    /* 固定大小静态缓冲区, 替换原来的变长数组(VLA) uint8_t temp[num+1]:
+     * num 最大为 128 (整页显存), VLA 曾一次性占用约 129 字节栈,
+     * 而工程栈仅 256 字节, 每次刷新 OLED 都会栈溢出破坏相邻全局变量。
+     * OLED 仅在主循环使用, 无重入风险 */
+    static uint8_t temp[130];
+
+    if (num > (sizeof(temp) - 1))
+    {
+        return;   /* 防御: 超出缓冲区容量直接丢弃本次传输 */
+    }
+
     temp[0] = regaddr;     // 第一个字节为寄存器地址
 
     // 拷贝数据到缓冲区

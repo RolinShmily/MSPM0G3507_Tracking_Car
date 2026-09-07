@@ -52,6 +52,18 @@ void UART_Send_Buff(uint8_t *str, uint8_t lenth);
 void Data_Anylize(void);
 
 /**
+ * @brief 帧处理函数: 检测到一帧接收完成后 (rxover=1), 在主循环中完成回显、解析与应答
+ * @note  需在主循环中周期调用; 中断内仅收帧置标志, 不做耗时操作
+ */
+void UART_ProcessFrame(void);
+
+/**
+ * @brief 获取 UART 自上电以来收到的总字节数 (诊断 RX 链路用)
+ * @return uint32_t 累计接收字节数
+ */
+uint32_t UART_GetRxTotal(void);
+
+/**
  * @brief 串口轮询发送电机状态（左速度、右速度、方向），合成一条字符串周期发出
  * @param period_ms 发送周期，单位毫秒（建议 500ms）
  */
