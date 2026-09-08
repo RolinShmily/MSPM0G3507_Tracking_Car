@@ -534,6 +534,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\SpeedCtrl.h</FilePath>
             </File>
+            <File>
+              <FileName>Track.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\Track.c</FilePath>
+            </File>
+            <File>
+              <FileName>Track.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\Track.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

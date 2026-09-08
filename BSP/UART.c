@@ -2,6 +2,7 @@
 #include "Motor.h"
 #include "Encoder.h"
 #include "SpeedCtrl.h"
+#include "Track.h"
 #include "Tick.h"
 #include <stdio.h>
 #include <string.h>
@@ -26,41 +27,61 @@ static volatile uint32_t g_last_rx_tick = 0; /* 最近一次收到字节的时间戳 (帧超时
 
 /**
  * @brief UART0 (UART_Debug) 中断服务函数
- * @note  逐字节接收字符；收到回车/换行表示一帧结束，
- *        仅添加 '\0' 结束符并置 rxover=1 标志，
- *        回显与解析应答由主循环调用 UART_ProcessFrame() 完成（中断内不做耗时操作）
+ * @note  排查并清除所有挂起的中断标志，发生溢出/帧错误/噪声时排空 FIFO 并清除标志，防止外设挂死
  */
 void UART_Debug_INST_IRQHandler(void)
 {
-    switch (DL_UART_Main_getPendingInterrupt(UART_Debug_INST)) {
-        case DL_UART_MAIN_IIDX_RX: {
-            uint8_t rx = DL_UART_Main_receiveData(UART_Debug_INST);
-            g_rx_total++;            /* 统计实际收到的字节数 (诊断 RX 链路) */
-            g_last_rx_tick = get_ticks(); /* 刷新最新字节时间戳 (帧超时用) */
+    DL_UART_IIDX iidx;
+    while ((iidx = DL_UART_Main_getPendingInterrupt(UART_Debug_INST)) != DL_UART_MAIN_IIDX_NO_INTERRUPT) {
+        switch (iidx) {
+            case DL_UART_MAIN_IIDX_RX:
+            case DL_UART_MAIN_IIDX_RX_TIMEOUT_ERROR: {
+                while (!DL_UART_Main_isRXFIFOEmpty(UART_Debug_INST)) {
+                    uint8_t rx = DL_UART_Main_receiveData(UART_Debug_INST);
+                    g_rx_total++;            /* 统计实际收到的字节数 (诊断 RX 链路) */
+                    g_last_rx_tick = get_ticks(); /* 刷新最新字节时间戳 (帧超时用) */
 
-            /* 收到 \r 或 \n 判定为一帧接收完成 */
-            if (rx == '\r' || rx == '\n')
-            {
-                if (myusart.rxcount > 0)
-                {
-                    /* 一帧接收完成: 添加字符串结束符, 置帧就绪标志 */
-                    myusart.rxbuff[myusart.rxcount] = '\0';
-                    myusart.rxover = 1;
+                    /* 收到 \r 或 \n 判定为一帧接收完成 */
+                    if (rx == '\r' || rx == '\n')
+                    {
+                        if (myusart.rxcount > 0)
+                        {
+                            /* 一帧接收完成: 添加字符串结束符, 置帧就绪标志 */
+                            myusart.rxbuff[myusart.rxcount] = '\0';
+                            myusart.rxover = 1;
+                        }
+                    }
+                    else
+                    {
+                        /* 正常累积接收字符 (帧未处理前继续缓存, 由主循环处理后清零) */
+                        if (myusart.rxover == 0 &&
+                            myusart.rxcount < (sizeof(myusart.rxbuff) - 1))
+                        {
+                            myusart.rxbuff[myusart.rxcount++] = rx;
+                        }
+                    }
                 }
+                break;
             }
-            else
-            {
-                /* 正常累积接收字符 (帧未处理前继续缓存, 由主循环处理后清零) */
-                if (myusart.rxover == 0 &&
-                    myusart.rxcount < (sizeof(myusart.rxbuff) - 1))
-                {
-                    myusart.rxbuff[myusart.rxcount++] = rx;
-                }
+            case DL_UART_MAIN_IIDX_OVERRUN_ERROR:
+            case DL_UART_MAIN_IIDX_BREAK_ERROR:
+            case DL_UART_MAIN_IIDX_PARITY_ERROR:
+            case DL_UART_MAIN_IIDX_FRAMING_ERROR:
+            case DL_UART_MAIN_IIDX_NOISE_ERROR: {
+                /* 发生溢出、帧错误、校验错误或噪声错误时，排空 RX FIFO 并清除错误中断标志，防止外设挂死 */
+                uint8_t dummy[16];
+                DL_UART_Main_drainRXFIFO(UART_Debug_INST, dummy, sizeof(dummy));
+                DL_UART_Main_clearInterruptStatus(UART_Debug_INST,
+                    DL_UART_MAIN_INTERRUPT_OVERRUN_ERROR |
+                    DL_UART_MAIN_INTERRUPT_BREAK_ERROR   |
+                    DL_UART_MAIN_INTERRUPT_PARITY_ERROR  |
+                    DL_UART_MAIN_INTERRUPT_FRAMING_ERROR |
+                    DL_UART_MAIN_INTERRUPT_NOISE_ERROR);
+                break;
             }
-            break;
+            default:
+                break;
         }
-        default:
-            break;
     }
 }
 
@@ -104,6 +125,12 @@ void UART_Init(void)
 {
     NVIC_ClearPendingIRQ(UART_Debug_INST_INT_IRQN);
     NVIC_EnableIRQ(UART_Debug_INST_INT_IRQN);
+
+    /* 使能错误中断，确保发生溢出/帧错误/噪声时能进入 ISR 及时清除与恢复 */
+    DL_UART_Main_enableInterrupt(UART_Debug_INST,
+        DL_UART_MAIN_INTERRUPT_OVERRUN_ERROR |
+        DL_UART_MAIN_INTERRUPT_FRAMING_ERROR |
+        DL_UART_MAIN_INTERRUPT_NOISE_ERROR);
 
     myusart.rxcount = 0;
     myusart.rxover  = 0;
@@ -180,11 +207,48 @@ void Data_Anylize(void)
         uint8_t valid_cmd = 0;
         uint8_t handled = 0;   /* 新命令已处理时, 跳过旧版 Sp/+/- 逻辑 */
 
+        /* ---- 循迹控制命令 ---- */
+
+        /* TSPD=<rpm>: 设置循迹基础转速 */
+        if ((data_p = strstr((char*)myusart.rxbuff, "TSPD")) != NULL ||
+            (data_p = strstr((char*)myusart.rxbuff, "tspd")) != NULL)
+        {
+            data_p += 4;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            int val = atoi(data_p);
+            Track_SetBaseSpeed(val);
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] Track base speed=%d RPM\r\n", (int)Track_GetBaseSpeed());
+            UART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* TRK=1/0: 使能/关闭循迹 */
+        if (!handled && ((data_p = strstr((char*)myusart.rxbuff, "TRK")) != NULL ||
+                         (data_p = strstr((char*)myusart.rxbuff, "trk")) != NULL))
+        {
+            data_p += 3;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            int val = atoi(data_p);
+            if (val) {
+                SpeedCtrl_Enable(1);
+                Track_Enable(1);
+            } else {
+                Track_Enable(0);
+                SpeedCtrl_Enable(0);
+            }
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] Track enable=%d\r\n",
+                    Track_IsEnabled());
+            UART_Send_Str((char*)myusart.txbuff);
+        }
+
         /* ---- 闭环控制命令 (参考报告表 5-1) ---- */
 
         /* SPD=<rpm>: 设置闭环目标转速 (左右轮相同) */
-        if ((data_p = strstr((char*)myusart.rxbuff, "SPD")) != NULL ||
-            (data_p = strstr((char*)myusart.rxbuff, "spd")) != NULL)
+        if (!handled && ((data_p = strstr((char*)myusart.rxbuff, "SPD")) != NULL ||
+                         (data_p = strstr((char*)myusart.rxbuff, "spd")) != NULL))
         {
             data_p += 3;
             while (*data_p == '=' || *data_p == ' ') { data_p++; }
@@ -315,9 +379,10 @@ void Data_Anylize(void)
 }
 
 /**
- * @brief 串口轮询发送电机状态: PWM 给定值 (带方向) 与编码器实测转速 (RPM)
- *        上报格式: "PWM L:<左> R:<右> Dir:<+/-> | RPM L:<左> R:<右>"
- * @param period_ms 发送周期，单位毫秒（建议 500ms）
+ * @brief 串口轮询发送电机状态: PWM 给定值与编码器实测转速 (RPM) 及循迹状态
+ *        精简上报格式: "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d\r\n"
+ *        报文长度仅 ~35 字节, 9600 波特率下耗时 < 35ms, 消除对主循环的长时间阻塞
+ * @param period_ms 发送周期，单位毫秒（建议 200ms）
  */
 void UART_Poll_MotorStatus(uint32_t period_ms)
 {
@@ -331,14 +396,12 @@ void UART_Poll_MotorStatus(uint32_t period_ms)
 
     int l_speed = L_MOTO_GetSpeed();
     int r_speed = R_MOTO_GetSpeed();
-    int dir     = Motor_GetDirection();
 
-    char txbuf[128];
-    sprintf((char *)txbuf, "PWM L:%d R:%d Dir:%s | RPM L:%d R:%d | RX:%u C:%u D:%02X %02X %02X %02X\r\n",
-            l_speed, r_speed, (dir > 0) ? "+" : "-",
-            Encoder_GetLRPM(), Encoder_GetRRPM(), (unsigned)g_rx_total,
-            (unsigned)myusart.rxcount,
-            myusart.rxbuff[0], myusart.rxbuff[1], myusart.rxbuff[2], myusart.rxbuff[3]);
+    char txbuf[64];
+    sprintf((char *)txbuf, "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d\r\n",
+            l_speed, r_speed,
+            Encoder_GetLRPM(), Encoder_GetRRPM(),
+            (int)Track_GetState());
     UART_Send_Str((char *)txbuf);
 }
 

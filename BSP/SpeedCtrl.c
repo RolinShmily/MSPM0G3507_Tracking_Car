@@ -3,8 +3,8 @@
 #include "Encoder.h"
 #include "Motor.h"
 
-/* 目标转速限幅: 防止串口误输入导致电机全速飞车 */
-#define SPEEDCTRL_TARGET_MAX    400     /* 输出轴 RPM 上限 (减速比 1:20, 电机轴约 8000 RPM) */
+/* 目标转速限幅: 防止串口误输入导致电机全速飞车; 实际rpm为275,这里保险250 */
+#define SPEEDCTRL_TARGET_MAX    250     /* 输出轴 RPM 上限 (减速比 1:20, 电机轴约 8000 RPM) */
 
 /* PID 输出限幅: 与 PWM 满量程一致 */
 #define SPEEDCTRL_OUT_MIN       (-(float)MOTOR_PWM_PERIOD_MAX)

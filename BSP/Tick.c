@@ -2,6 +2,7 @@
 #include "Key.h"
 #include "Encoder.h"
 #include "SpeedCtrl.h"
+#include "Track.h"
 
 /* 滴答定时器累积计数变量 (每 1ms 中断累加 1) */
 static volatile uint32_t g_systick_ms = 0;
@@ -14,11 +15,19 @@ static volatile uint8_t g_timer_1s_flag = 0;
  */
 void SysTick_Handler(void)
 {
+    static uint8_t s_tick_10ms = 0;
+
     g_systick_ms++;
     /* 1ms 周期调用按键状态扫描处理函数 */
     Key_Tick_Handler();
     /* 1ms 周期调用编码器处理: 10ms 速度采样, 1s 转速换算 */
     Encoder_Tick_Handler();
+
+    /* 10ms 分频调用循迹处理: 运行在速度闭环控制之前，保证 100Hz 确定性采样与零抖动 */
+    if (++s_tick_10ms >= 10) {
+        s_tick_10ms = 0;
+        Track_Process();
+    }
     /* 1ms 周期调用速度闭环处理: 内部 10ms 执行一次增量式 PID */
     SpeedCtrl_Tick_Handler();
 }

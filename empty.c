@@ -36,6 +36,7 @@
 #include "BSP/SpeedCtrl.h"
 #include "BSP/OLED.h"
 #include "BSP/Gray.h"
+#include "BSP/Track.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -51,6 +52,7 @@ int main(void)
     Gray_Init();
     Encoder_Init();
     SpeedCtrl_Init();
+    Track_Init();
 
     /* 3. 上电通过串口打印帮助信息, 提示指令格式说明 */
     UART_Send_Str("\r\n=========================================\r\n");
@@ -59,6 +61,10 @@ int main(void)
     UART_Send_Str("   pwm=<value> : Set Speed (e.g. pwm=100, pwm=500)\r\n");
     UART_Send_Str("   +         : Forward Direction\r\n");
     UART_Send_Str("   -         : Backward Direction\r\n");
+    UART_Send_Str("   pid=1/0   : Enable/Disable Speed Closed-loop\r\n");
+    UART_Send_Str("   spd=<rpm> : Set Target RPM\r\n");
+    UART_Send_Str("   trk=1/0   : Enable/Disable Line Tracking\r\n");
+    UART_Send_Str("   tspd=<rpm>: Set Tracking Base Speed\r\n");
     UART_Send_Str("=========================================\r\n\r\n");
 
     /* 4. OLED 初始化静态界面显示 */
@@ -69,32 +75,40 @@ int main(void)
 
     char gray_str[16];
     char display_str[32];
+    uint32_t last_oled_tick = 0;
 
     while (1)
     {
-        /* 5. 实时读取 8 路灰度传感器状态 (形如 "01010101") */
-        Gray_GetStatusString(gray_str);
+        uint32_t now = get_ticks();
 
-        /* 6. 在 OLED 屏幕实时刷新传感器状态 (探头 1~8 字符间隔显示) */
-        sprintf(display_str, "%c %c %c %c %c %c %c %c",
-                gray_str[0], gray_str[1], gray_str[2], gray_str[3],
-                gray_str[4], gray_str[5], gray_str[6], gray_str[7]);
-        OLED_ShowString(0, 36, display_str, OLED_8X16);
+        /* 5. 解耦 OLED 屏幕刷新: 每 200ms 刷新一次，彻底避免 I2C 阻塞主循环影响串口响应 */
+        if (now - last_oled_tick >= 200) {
+            last_oled_tick = now;
 
-        /* 7. 显示左右轮 1s 窗口转速 (前缀 +/- 表示方向) */
-        sprintf(display_str, "L%+5d R%+5d RPM",
-                Encoder_GetLRPM(), Encoder_GetRRPM());
-        OLED_ShowString(0, 54, display_str, OLED_6X8);
+            /* 实时读取 8 路灰度传感器状态 (形如 "01010101") */
+            Gray_GetStatusString(gray_str);
 
-        OLED_Update();
+            /* 在 OLED 屏幕实时刷新传感器状态 (探头 1~8 字符间隔显示) */
+            sprintf(display_str, "%c %c %c %c %c %c %c %c",
+                    gray_str[0], gray_str[1], gray_str[2], gray_str[3],
+                    gray_str[4], gray_str[5], gray_str[6], gray_str[7]);
+            OLED_ShowString(0, 36, display_str, OLED_8X16);
 
-        /* 8. 帧处理: 回显+解析串口指令并控制电机 (主循环上下文, 非中断) */
+            /* 显示左右轮 1s 窗口转速 (前缀 +/- 表示方向) */
+            sprintf(display_str, "L%+5d R%+5d RPM",
+                    Encoder_GetLRPM(), Encoder_GetRRPM());
+            OLED_ShowString(0, 54, display_str, OLED_6X8);
+
+            OLED_Update();
+        }
+
+        /* 6. 帧处理: 回显+解析串口指令并控制电机 (主循环即时响应, 零中断) */
         UART_ProcessFrame();
 
-        /* 9. 周期性查询并通过串口上报电机当前状态 (500ms 一次) */
-        UART_Poll_MotorStatus(500);
+        /* 7. 周期性查询并通过串口上报电机当前状态 (200ms 一次) */
+        UART_Poll_MotorStatus(200);
 
-        /* 10. 主循环刷新间隔 20ms (刷新率约 50Hz) */
-        delay_ms(20);
+        /* 8. 主循环快速轮询延时 1ms, 保证串口指令即时响应 */
+        delay_ms(1);
     }
 }
