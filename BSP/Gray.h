@@ -17,7 +17,7 @@ void Gray_Init(void);
 uint8_t Gray_ReadChannel(uint8_t ch);
 
 /**
- * @brief 获取 8 路灰度传感器状态并填充为 8 位字符格式字符串 (例如 "01010101")
+ * @brief 获取 8 路灰度传感器状态并填充为 8 位字符格式字符串 (车头视角从左到右: OUT8 ~ OUT1)
  * @param out_str 存储字符串的目标缓冲区 (长度需至少 9 字节，含 '\0')
  */
 void Gray_GetStatusString(char *out_str);

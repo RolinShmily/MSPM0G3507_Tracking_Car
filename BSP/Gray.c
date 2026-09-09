@@ -23,14 +23,14 @@ uint8_t Gray_ReadChannel(uint8_t ch)
 void Gray_GetStatusString(char *out_str)
 {
     if (out_str == 0) return;
-    out_str[0] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_07_OUT1_PIN) != 0) ? '1' : '0';
-    out_str[1] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_08_OUT2_PIN) != 0) ? '1' : '0';
-    out_str[2] = (DL_GPIO_readPins(GRAYB_PORT, GRAYB_PIN_19_OUT3_PIN) != 0) ? '1' : '0';
-    out_str[3] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_18_OUT4_PIN) != 0) ? '1' : '0';
-    out_str[4] = (DL_GPIO_readPins(GRAYB_PORT, GRAYB_PIN_05_OUT5_PIN) != 0) ? '1' : '0';
-    out_str[5] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_13_OUT6_PIN) != 0) ? '1' : '0';
-    out_str[6] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_12_OUT7_PIN) != 0) ? '1' : '0';
-    out_str[7] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_22_OUT8_PIN) != 0) ? '1' : '0';
+    out_str[0] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_22_OUT8_PIN) != 0) ? '1' : '0';
+    out_str[1] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_12_OUT7_PIN) != 0) ? '1' : '0';
+    out_str[2] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_13_OUT6_PIN) != 0) ? '1' : '0';
+    out_str[3] = (DL_GPIO_readPins(GRAYB_PORT, GRAYB_PIN_05_OUT5_PIN) != 0) ? '1' : '0';
+    out_str[4] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_18_OUT4_PIN) != 0) ? '1' : '0';
+    out_str[5] = (DL_GPIO_readPins(GRAYB_PORT, GRAYB_PIN_19_OUT3_PIN) != 0) ? '1' : '0';
+    out_str[6] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_08_OUT2_PIN) != 0) ? '1' : '0';
+    out_str[7] = (DL_GPIO_readPins(GRAYA_PORT, GRAYA_PIN_07_OUT1_PIN) != 0) ? '1' : '0';
     out_str[8] = '\0';
 }
 
