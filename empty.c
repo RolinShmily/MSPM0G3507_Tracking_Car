@@ -85,9 +85,10 @@ int main(void)
                     gray_str[4], gray_str[5], gray_str[6], gray_str[7]);
             OLED_ShowString(0, 36, display_str, OLED_8X16);
 
-            /* 显示左右轮 1s 滚动转速 (前缀 +/- 表示方向) */
-            sprintf(display_str, "L%+5d R%+5d RPM",
-                    Encoder_GetLRPM(), Encoder_GetRRPM());
+            /* 显示循迹观测量: 偏差(mm, 正=线在右) / 档位 / 左右轮目标 RPM */
+            sprintf(display_str, "P%+4d B%d L%+4d R%+4d",
+                    Track_GetPosMM(), (int)Track_GetState(),
+                    SpeedCtrl_GetTargetL(), SpeedCtrl_GetTargetR());
             OLED_ShowString(0, 54, display_str, OLED_6X8);
 
             OLED_Update();

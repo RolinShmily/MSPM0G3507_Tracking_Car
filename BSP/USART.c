@@ -399,6 +399,20 @@ void USART_Data_Analyze(void)
             USART_Send_Str((char*)myusart.txbuff);
         }
 
+        /* TLOG=<ms>: 循迹遥测流周期 (0=关闭, 建议 50~200) */
+        if (!handled && ((data_p = strstr((char*)myusart.rxbuff, "TLOG")) != NULL ||
+                         (data_p = strstr((char*)myusart.rxbuff, "tlog")) != NULL))
+        {
+            data_p += 4;
+            while (*data_p == '=' || *data_p == ' ') { data_p++; }
+            int val = atoi(data_p);
+            USART_SetTrackLogMs((val > 0) ? (uint32_t)val : 0U);
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] TLOG=%dms (0=off)\r\n", val);
+            USART_Send_Str((char*)myusart.txbuff);
+        }
+
         /* TRK=1/0: 启用/关闭循迹 */
         if (!handled && ((data_p = strstr((char*)myusart.rxbuff, "TRK")) != NULL ||
                          (data_p = strstr((char*)myusart.rxbuff, "trk")) != NULL))
@@ -572,10 +586,38 @@ void USART_Data_Analyze(void)
  *        上报格式: "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d\r\n"
  * @param period_ms 上报周期 (单位: ms，建议 200ms)
  */
+/* ---- 紧凑循迹遥测流 (串口指令 TLOG=<ms> 打开, 0 = 关闭) ----
+ * 9600bps 下一行 25 字节约需 26ms, 所以周期给到 30ms 以下没有意义(链路自我限流)。
+ * 默认关闭以免平时刷屏; 调试直角/找回时用 TLOG=50 打开, 抓那几百毫秒的瞬态。
+ * 输出格式: T,<图案HEX>,<偏差mm>,<档位>,<目标L>,<目标R>,<反馈L>,<反馈R> */
+static uint32_t s_track_log_ms = 0U;      /* 0 = 关闭 */
+static uint32_t s_track_last_tick = 0U;
+
+/**
+ * @brief 设置紧凑循迹遥测周期 (ms), 0 = 关闭
+ */
+void USART_SetTrackLogMs(uint32_t ms)
+{
+    s_track_log_ms = ms;
+    s_track_last_tick = get_ticks();
+}
+
 void USART_Poll_MotorStatus(uint32_t period_ms)
 {
     static uint32_t last_send_tick = 0;
     uint32_t now = get_ticks();
+
+    /* 紧凑循迹遥测流: 放在状态行周期判断之前, 不受 200ms 状态周期影响 */
+    if (s_track_log_ms != 0U && (now - s_track_last_tick) >= s_track_log_ms) {
+        s_track_last_tick = now;
+        sprintf((char*)myusart.txbuff, "T,%02X,%+d,%d,%+d,%+d,%+d,%+d\r\n",
+                (unsigned)Track_GetSensor(),
+                (int)Track_GetPosMM(),
+                (int)Track_GetState(),
+                (int)SpeedCtrl_GetTargetL(), (int)SpeedCtrl_GetTargetR(),
+                (int)SpeedCtrl_GetFbL(), (int)SpeedCtrl_GetFbR());
+        USART_Send_Str((char*)myusart.txbuff);
+    }
 
     if ((now - last_send_tick) < period_ms) {
         return;
@@ -585,11 +627,14 @@ void USART_Poll_MotorStatus(uint32_t period_ms)
     int l_speed = L_MOTO_GetSpeed();
     int r_speed = R_MOTO_GetSpeed();
 
-    char txbuf[64];
-    sprintf((char *)txbuf, "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d\r\n",
+    char txbuf[160];
+    sprintf((char *)txbuf,
+            "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d | G:%02X P:%+d B:%d TL:%+d TR:%+d\r\n",
             l_speed, r_speed,
             Encoder_GetLRPM(), Encoder_GetRRPM(),
-            (int)Track_GetState());
+            (int)Track_GetState(),
+            (unsigned)Track_GetSensor(), (int)Track_GetPosMM(), (int)Track_GetState(),
+            (int)SpeedCtrl_GetTargetL(), (int)SpeedCtrl_GetTargetR());
     USART_Send_Str((char *)txbuf);
 }
 

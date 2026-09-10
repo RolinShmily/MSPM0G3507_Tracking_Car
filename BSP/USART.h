@@ -183,6 +183,12 @@ void USART_Data_Analyze(void);
 void USART_Poll_MotorStatus(uint32_t period_ms);
 
 /**
+ * @brief 设置紧凑循迹遥测流周期 (ms), 0 = 关闭 (对应串口指令 TLOG=<ms>)
+ *        格式: T,<图案HEX>,<偏差mm>,<档位>,<目标L>,<目标R>,<反馈L>,<反馈R>
+ */
+void USART_SetTrackLogMs(uint32_t ms);
+
+/**
  * @brief 获取自上电以来 UART 实际接收到的总字节数 (RX 链路诊断)
  * @return uint32_t 累计接收字节数
  */
