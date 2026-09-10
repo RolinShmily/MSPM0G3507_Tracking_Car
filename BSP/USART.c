@@ -4,6 +4,7 @@
 #include "SpeedCtrl.h"
 #include "Track.h"
 #include "Tick.h"
+#include "Watchdog.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -397,6 +398,29 @@ void USART_Data_Analyze(void)
             valid_cmd = 1;
             sprintf((char*)myusart.txbuff, "[MCU OK] Track base speed=%d RPM\r\n", (int)Track_GetBaseSpeed());
             USART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* RST?: 查询开机复位原因 */
+        if (!handled && (strstr((char*)myusart.rxbuff, "RST?") != NULL ||
+                         strstr((char*)myusart.rxbuff, "rst?") != NULL))
+        {
+            handled = 1;
+            valid_cmd = 1;
+            sprintf((char*)myusart.txbuff, "[MCU OK] Reset cause: 0x%02X (%s)\r\n",
+                    (unsigned int)Watchdog_GetResetCause(), Watchdog_GetResetCauseStr());
+            USART_Send_Str((char*)myusart.txbuff);
+        }
+
+        /* WDT_TEST: 故意死循环以测试硬件看门狗复位 */
+        if (!handled && (strstr((char*)myusart.rxbuff, "WDT_TEST") != NULL ||
+                         strstr((char*)myusart.rxbuff, "wdt_test") != NULL))
+        {
+            handled = 1;
+            valid_cmd = 1;
+            USART_Send_Str("[MCU WARN] Triggering WDT hang test... system will reset in 1s\r\n");
+            while (1) {
+                /* 挂起主循环，等待 WWDT0 硬件超时复位 */
+            }
         }
 
         /* TLOG=<ms>: 循迹遥测流周期 (0=关闭, 建议 50~200) */

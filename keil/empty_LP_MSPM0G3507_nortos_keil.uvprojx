@@ -549,6 +549,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\Track.h</FilePath>
             </File>
+            <File>
+              <FileName>Watchdog.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../BSP/Watchdog.c</FilePath>
+            </File>
+            <File>
+              <FileName>Watchdog.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>../BSP/Watchdog.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

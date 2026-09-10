@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <ti/driverlib/dl_i2c.h>
+#include <ti/driverlib/dl_gpio.h>
 /**
   * 数据存储格式：
   * 纵向8点，高位在下，先从左到右，再从上到下
@@ -81,6 +82,76 @@ uint8_t OLED_Buff[50];
 /*引脚配置*********************/
 #define delay_us(X)		delay_cycles((CPUCLK_FREQ/1000000)*(X))
 
+#define I2C_TIMEOUT_CYCLES  80000U  /* 约 2.5ms 超时保护 (32MHz 主频下) */
+
+/**
+ * @brief I2C 总线死锁恢复机制 (9-Clock Bus Recovery)
+ * @note 当从机 (OLED/SSD1306) 在传输中途遭遇 MCU 异常复位或通信打断时，
+ *       其内部状态机可能正处于等待时钟边沿的状态并将 SDA 持续拉低。
+ *       此时硬件 I2C 控制器会检测到总线忙 (BUSY_BUS) 而永久死锁。
+ *       本函数通过临时将 SCL/SDA 切为 GPIO 模式，向从机连续发送 9 个 SCL 时钟脉冲，
+ *       迫使从机完成当前字节移位并释放 SDA，随后发送 STOP 条件，
+ *       最后重新使能硬件 I2C 控制器，彻底解开总线死锁。
+ */
+void OLED_I2C_BusRecovery(void)
+{
+    uint8_t i;
+
+    /* 1. 将 SCL 切换为推挽输出，初始拉高 */
+    DL_GPIO_initDigitalOutput(GPIO_OLED_IOMUX_SCL);
+    DL_GPIO_enableOutput(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+    DL_GPIO_setPins(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+
+    /* 2. 将 SDA 切换为浮空输入，检测从机是否拉低总线 */
+    DL_GPIO_initDigitalInput(GPIO_OLED_IOMUX_SDA);
+    DL_GPIO_disableOutput(GPIO_OLED_SDA_PORT, GPIO_OLED_SDA_PIN);
+
+    delay_cycles(160);  /* 约 5us */
+
+    /* 3. 最多发送 9 个 SCL 时钟脉冲促使从机释放 SDA */
+    for (i = 0; i < 9; i++)
+    {
+        if (DL_GPIO_readPins(GPIO_OLED_SDA_PORT, GPIO_OLED_SDA_PIN) != 0)
+        {
+            break;  /* SDA 已经恢复高电平，从机已成功释放 */
+        }
+        DL_GPIO_clearPins(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+        delay_cycles(160);  /* 5us */
+        DL_GPIO_setPins(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+        delay_cycles(160);  /* 5us */
+    }
+
+    /* 4. 产生标准 I2C STOP 停止条件 (SCL 为高期间 SDA 由低拉高) */
+    DL_GPIO_initDigitalOutput(GPIO_OLED_IOMUX_SDA);
+    DL_GPIO_enableOutput(GPIO_OLED_SDA_PORT, GPIO_OLED_SDA_PIN);
+
+    DL_GPIO_clearPins(GPIO_OLED_SDA_PORT, GPIO_OLED_SDA_PIN);
+    DL_GPIO_clearPins(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+    delay_cycles(160);
+    DL_GPIO_setPins(GPIO_OLED_SCL_PORT, GPIO_OLED_SCL_PIN);
+    delay_cycles(160);
+    DL_GPIO_setPins(GPIO_OLED_SDA_PORT, GPIO_OLED_SDA_PIN);
+    delay_cycles(160);
+
+    /* 5. 恢复 SCL 与 SDA 为硬件 I2C 外设引脚复用功能 */
+    DL_GPIO_initPeripheralInputFunctionFeatures(GPIO_OLED_IOMUX_SDA,
+        GPIO_OLED_IOMUX_SDA_FUNC, DL_GPIO_INVERSION_DISABLE,
+        DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+        DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_initPeripheralInputFunctionFeatures(GPIO_OLED_IOMUX_SCL,
+        GPIO_OLED_IOMUX_SCL_FUNC, DL_GPIO_INVERSION_DISABLE,
+        DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
+        DL_GPIO_WAKEUP_DISABLE);
+    DL_GPIO_enableHiZ(GPIO_OLED_IOMUX_SDA);
+    DL_GPIO_enableHiZ(GPIO_OLED_IOMUX_SCL);
+
+    /* 6. 复位并重新初始化 I2C 控制器硬件模块 */
+    DL_I2C_reset(OLED_INST);
+    DL_I2C_enablePower(OLED_INST);
+    delay_cycles(POWER_STARTUP_DELAY);
+    SYSCFG_DL_OLED_init();
+}
+
 /**
  * @brief 向指定设备的寄存器写入多个字节的数据。
  *
@@ -97,6 +168,7 @@ void IIC_WriteReg_HW(I2C_Regs *hi2c, uint8_t addr, uint8_t regaddr, uint8_t* reg
      * 而工程栈仅 256 字节, 每次刷新 OLED 都会栈溢出破坏相邻全局变量。
      * OLED 仅在主循环使用, 无重入风险 */
     static uint8_t temp[130];
+    uint32_t timeout;
 
     if (num > (sizeof(temp) - 1))
     {
@@ -111,20 +183,38 @@ void IIC_WriteReg_HW(I2C_Regs *hi2c, uint8_t addr, uint8_t regaddr, uint8_t* reg
         temp[i + 1] = regdata[i];
     }
 
-    // 1. 填充数据到 TX FIFO
-    DL_I2C_fillControllerTXFIFO(hi2c, temp, num + 1);
-
-    // 2. 启动传输到目标设备
-    DL_I2C_startControllerTransfer(hi2c, addr, DL_I2C_CONTROLLER_DIRECTION_TX, num + 1);
-
-    // 3. 等待传输完成
-    while (DL_I2C_getControllerStatus(hi2c) & DL_I2C_CONTROLLER_STATUS_BUSY_BUS)
+    // 1. 等待上一次总线空闲 (带超时保护，杜绝死锁)
+    timeout = I2C_TIMEOUT_CYCLES;
+    while ((DL_I2C_getControllerStatus(hi2c) & DL_I2C_CONTROLLER_STATUS_BUSY_BUS) && --timeout)
     {
         ;
     }
-    while (!(DL_I2C_getControllerStatus(hi2c) & DL_I2C_CONTROLLER_STATUS_IDLE))
+    if (timeout == 0)
+    {
+        /* 总线卡死 (SDA 被拉低), 执行硬件总线恢复并退出 */
+        OLED_I2C_BusRecovery();
+        return;
+    }
+
+    // 2. 填充数据到 TX FIFO
+    DL_I2C_fillControllerTXFIFO(hi2c, temp, num + 1);
+
+    // 3. 启动传输到目标设备
+    DL_I2C_startControllerTransfer(hi2c, addr, DL_I2C_CONTROLLER_DIRECTION_TX, num + 1);
+
+    // 4. 等待传输完成 (带超时保护，杜绝死锁)
+    timeout = I2C_TIMEOUT_CYCLES;
+    while (!(DL_I2C_getControllerStatus(hi2c) & DL_I2C_CONTROLLER_STATUS_IDLE) && --timeout)
     {
         ;
+    }
+    if (timeout == 0)
+    {
+        /* 传输超时 (从机未应答或卡死), 清理 FIFO 与状态机并恢复总线 */
+        DL_I2C_flushControllerTXFIFO(hi2c);
+        DL_I2C_resetControllerTransfer(hi2c);
+        OLED_I2C_BusRecovery();
+        return;
     }
 }
 
@@ -280,6 +370,9 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
   */
 void OLED_Init(void)
 {
+	/* 先执行硬件I2C总线死锁恢复, 确保若此前发生过热复位或总线挂起, OLED能被正确唤醒并释放SDA */
+	OLED_I2C_BusRecovery();
+	delay_ms(50);
 	
 	/*写入一系列的命令，对OLED进行初始化配置*/
 	OLED_WriteCommand(0xAE);	//设置显示开启/关闭，0xAE关闭，0xAF开启

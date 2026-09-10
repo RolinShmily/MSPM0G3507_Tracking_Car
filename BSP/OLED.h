@@ -36,6 +36,14 @@ extern uint8_t OLED_Buff[50];
 /*初始化函数*/
 void OLED_Init(void);
 
+/**
+ * @brief I2C 总线死锁恢复机制 (9-Clock Bus Recovery)
+ * @note 若从机 (OLED) 在传输途中由于 MCU 复位或通信中断而将 SDA 持续拉低，
+ *       调用此函数通过 GPIO 模式连续发送 9 个 SCL 时钟脉冲并发送 STOP 信号，
+ *       强制释放 SDA 总线，随后重新初始化硬件 I2C 控制器。
+ */
+void OLED_I2C_BusRecovery(void);
+
 /*更新函数*/
 void OLED_Update(void);
 void OLED_UpdateArea(int16_t X, int16_t Y, uint8_t Width, uint8_t Height);

@@ -40,6 +40,7 @@
 #include "BSP/Gray.h"
 #include "BSP/Track.h"
 #include "BSP/Key.h"
+#include "BSP/Watchdog.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -51,6 +52,14 @@ int main(void)
     /* 2. 初始化各模块: 电机驱动、串口通信、OLED 显示、灰度传感器、编码器等 */
     Motor_Init();
     USART_Init();
+
+    /* 3. 初始化硬件独立看门狗 WWDT0 并通过串口上报本次复位来源 */
+    Watchdog_Init();
+    char rst_info[64];
+    snprintf(rst_info, sizeof(rst_info), "[SYS] Boot reset cause: 0x%02X (%s)\r\n",
+             (unsigned int)Watchdog_GetResetCause(), Watchdog_GetResetCauseStr());
+    USART_Send_Str(rst_info);
+
     OLED_Init();
     Gray_Init();
     Encoder_Init();
@@ -70,6 +79,9 @@ int main(void)
 
     while (1)
     {
+        /* 硬件看门狗喂狗: 周期性刷新 WWDT0 计数器，若主循环阻塞超时 1.0s 则自动硬件复位 */
+        Watchdog_Feed();
+
         uint32_t now = get_ticks();
 
         /* 5. 周期刷新 OLED 屏幕: 每 200ms 刷新一次，彻底避开 I2C 阻塞影响串口响应 */

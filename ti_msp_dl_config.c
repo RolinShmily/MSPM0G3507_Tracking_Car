@@ -58,6 +58,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_OLED_init();
     SYSCFG_DL_UART_Debug_init();
     SYSCFG_DL_SYSTICK_init();
+    SYSCFG_DL_WWDT0_init();
     /* Ensure backup structures have no valid state */
     gPWM_LEDBackup.backupRdy = false;
 }
@@ -93,6 +94,8 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_I2C_reset(OLED_INST);
     DL_UART_Main_reset(UART_Debug_INST);
 
+    DL_WWDT_reset(WWDT0_INST);
+
     DL_GPIO_enablePower(GPIOA);
     DL_GPIO_enablePower(GPIOB);
     DL_TimerG_enablePower(PWM_LED_INST);
@@ -101,6 +104,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_I2C_enablePower(OLED_INST);
     DL_UART_Main_enablePower(UART_Debug_INST);
 
+    DL_WWDT_enablePower(WWDT0_INST);
     delay_cycles(POWER_STARTUP_DELAY);
 }
 
@@ -411,4 +415,25 @@ SYSCONFIG_WEAK void SYSCFG_DL_SYSTICK_init(void)
      * enables the interrupt, and starts the SysTick Timer
      */
     DL_SYSTICK_config(32000);
+}
+
+SYSCONFIG_WEAK void SYSCFG_DL_WWDT0_init(void)
+{
+    /*
+     * Initialize WWDT0 in Watchdog mode with following settings
+     *   Watchdog Source Clock = (LFCLK Freq) / (WWDT Clock Divider)
+     *                         = 32768Hz / 8 = 4.10 kHz
+     *   Watchdog Period       = (WWDT Clock Divider) ∗ (WWDT Period Count) / 32768Hz
+     *                         = 8 * 2^12 / 32768Hz = 1.00 s
+     *   Window0 Closed Period = (WWDT Period) * (Window0 Closed Percent)
+     *                         = 1.00 s * 0% = 0.00 s
+     *   Window1 Closed Period = (WWDT Period) * (Window1 Closed Percent)
+     *                         = 1.00 s * 0% = 0.00 s
+     */
+    DL_WWDT_initWatchdogMode(WWDT0_INST, DL_WWDT_CLOCK_DIVIDE_8,
+                             DL_WWDT_TIMER_PERIOD_12_BITS, DL_WWDT_STOP_IN_SLEEP,
+                             DL_WWDT_WINDOW_PERIOD_0, DL_WWDT_WINDOW_PERIOD_0);
+
+    /* Set Window0 as active window */
+    DL_WWDT_setActiveWindow(WWDT0_INST, DL_WWDT_WINDOW0);
 }

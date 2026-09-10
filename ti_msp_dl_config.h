@@ -233,6 +233,15 @@ extern "C"
 #define Encoder_OB4_PIN                                          (DL_GPIO_PIN_3)
 #define Encoder_OB4_IOMUX                                        (IOMUX_PINCM16)
 
+
+
+
+/* Defines for WWDT */
+#define WWDT0_INST                                                       (WWDT0)
+#define WWDT0_INT_IRQN                                          (WWDT0_INT_IRQn)
+
+
+
     /* clang-format on */
 
     void SYSCFG_DL_init(void);
@@ -246,6 +255,7 @@ extern "C"
     void SYSCFG_DL_UART_Debug_init(void);
 
     void SYSCFG_DL_SYSTICK_init(void);
+    void SYSCFG_DL_WWDT0_init(void);
 
     bool SYSCFG_DL_saveConfiguration(void);
     bool SYSCFG_DL_restoreConfiguration(void);
