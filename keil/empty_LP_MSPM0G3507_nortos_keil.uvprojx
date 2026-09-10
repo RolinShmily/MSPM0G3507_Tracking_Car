@@ -465,9 +465,14 @@
               <FilePath>../BSP/Motor.h</FilePath>
             </File>
             <File>
-              <FileName>UART.c</FileName>
+              <FileName>USART.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../BSP/UART.c</FilePath>
+              <FilePath>../BSP/USART.c</FilePath>
+            </File>
+            <File>
+              <FileName>USART.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>../BSP/USART.h</FilePath>
             </File>
             <File>
               <FileName>UART.h</FileName>

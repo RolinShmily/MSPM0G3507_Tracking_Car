@@ -14,6 +14,7 @@
 # 放行 assets 资源与转换工具
 !assets/
 !assets/**
+assets/ppt
 
 # 放行 BSP 模块所有源码及头文件
 !BSP/
