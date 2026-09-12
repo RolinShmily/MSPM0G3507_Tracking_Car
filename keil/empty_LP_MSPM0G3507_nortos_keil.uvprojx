@@ -337,7 +337,7 @@
             <v6WtE>0</v6WtE>
             <v6Rtti>0</v6Rtti>
             <VariousControls>
-              <MiscControls></MiscControls>
+              <MiscControls>-Wno-invalid-source-encoding</MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
               <IncludePath>..\source;..\source\third_party\CMSIS\Core\Include;..\;..\BSP</IncludePath>
@@ -473,11 +473,6 @@
               <FileName>USART.h</FileName>
               <FileType>5</FileType>
               <FilePath>../BSP/USART.h</FilePath>
-            </File>
-            <File>
-              <FileName>UART.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>../BSP/UART.h</FilePath>
             </File>
             <File>
               <FileName>OLED.c</FileName>

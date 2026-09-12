@@ -24,7 +24,7 @@ void PID_Reset(PID_t *pid)
 }
 
 /**
- * @brief 增量式 PID 一步运算
+ * @brief 增量式 PID 单步计算
  */
 int32_t PID_IncrementalStep(PID_t *pid, float target, float feedback)
 {
@@ -39,7 +39,7 @@ int32_t PID_IncrementalStep(PID_t *pid, float target, float feedback)
     pid->e_k2 = pid->e_k1;
     pid->e_k1 = e;
 
-    /* 输出累积并限幅: 超限后增量不再累积, 抑制积分饱和 */
+    /* 输出累加与限幅: 越限后饱和不再累加, 抑制积分饱和 */
     pid->out += du;
     if (pid->out > pid->out_max) {
         pid->out = pid->out_max;

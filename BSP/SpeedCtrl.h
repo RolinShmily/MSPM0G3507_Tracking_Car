@@ -4,12 +4,11 @@
 #include <stdint.h>
 
 /**
- * 速度闭环控制模块 (参考《电子系统综合实践》报告 5.4 节)
+ * @file    SpeedCtrl.h
+ * @brief   双轮电机速度闭环控制模块 (100Hz 强实时)
  *
- * 结构: 目标RPM -> 增量式PID(每10ms) -> PWM限幅输出 -> L/R_MOTO_SetSpeed
- * 反馈: 编码器 10ms 脉冲增量 3 拍滑动窗口 (等效 30ms) -> 输出轴 RPM
- *
- * 模式: 闭环模式 (PID 每 10ms 自动调节左右轮 PWM)
+ * 控制结构: 目标转速(RPM) -> 增量式 PI 调节(每10ms) -> PWM限幅输出 -> 电机驱动
+ * 反馈机制: 霍尔编码器 10ms 采样增量经过 3 拍滑动求和窗口 (等效 30ms 滤波) -> 输出轴 RPM
  */
 
 /**
@@ -49,22 +48,38 @@ void SpeedCtrl_SetTarget(int32_t rpm);
 void SpeedCtrl_SetTargetLR(int32_t l_rpm, int32_t r_rpm);
 
 /**
+ * @brief 获取左轮当前目标转速 (RPM)
+ */
+int32_t SpeedCtrl_GetTargetL(void);
+
+/**
+ * @brief 获取右轮当前目标转速 (RPM)
+ */
+int32_t SpeedCtrl_GetTargetR(void);
+
+/**
  * @brief 在线设置 PID 参数 (同时作用于左右轮控制器)
+ * @param kp 比例增益
+ * @param ki 积分增益
+ * @param kd 微分增益
  */
 void SpeedCtrl_SetParams(float kp, float ki, float kd);
 
-int32_t SpeedCtrl_GetTargetL(void);
-int32_t SpeedCtrl_GetTargetR(void);
-int32_t SpeedCtrl_GetOutL(void);
-int32_t SpeedCtrl_GetOutR(void);
+/**
+ * @brief 在线读取当前 PID 参数
+ */
+float SpeedCtrl_GetKp(void);
+float SpeedCtrl_GetKi(void);
+float SpeedCtrl_GetKd(void);
 
 /**
- * @brief 查询 30ms 窗口的反馈转速 (RPM), 用于观察内环跟随情况
+ * @brief 查询左轮 30ms 窗口平滑反馈转速 (RPM)
  */
 int32_t SpeedCtrl_GetFbL(void);
+
+/**
+ * @brief 查询右轮 30ms 窗口平滑反馈转速 (RPM)
+ */
 int32_t SpeedCtrl_GetFbR(void);
-float   SpeedCtrl_GetKp(void);
-float   SpeedCtrl_GetKi(void);
-float   SpeedCtrl_GetKd(void);
 
 #endif /* __SPEEDCTRL_H */

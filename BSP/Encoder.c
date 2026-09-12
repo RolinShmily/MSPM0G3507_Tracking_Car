@@ -92,7 +92,7 @@ void Encoder_Tick_Handler(void)
     /* 每 1s 换算一次转速 (带符号, 符号即方向) */
     if (++sample_cnt >= ENCODER_SAMPLES_PER_SEC) {
         sample_cnt = 0;
-        g_rl_speed_rpm = (acc_rl * 60) / (ENCODER_GEAR_RATIO * ENCODER_PPR);
+        g_rl_speed_rpm = (acc_rl * 60) / (ENCODER_GEAR_RATIO * ENCODER_PPR); 
         g_rr_speed_rpm = (acc_rr * 60) / (ENCODER_GEAR_RATIO * ENCODER_PPR);
         acc_rl = 0;
         acc_rr = 0;

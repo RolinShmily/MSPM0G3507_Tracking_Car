@@ -1,9 +1,13 @@
-# 默认忽略所有文件与目录
+# 默认忽略所有根目录文件与目录
 /*
 
-# 放行 .gitignore 与 agent规范
+# 放行基础配置文件与文档
 !.gitignore
+!.gitattributes
 !AGENTS.md
+!LICENSE
+!README.md
+!README_CN.md
 
 # 放行用户主程序与 SysConfig 核心文件
 !empty.c
@@ -11,18 +15,22 @@
 !ti_msp_dl_config.c
 !ti_msp_dl_config.h
 
-# 放行 assets 资源与转换工具
+# 放行 assets 硬件电路与资源
 !assets/
 !assets/**
-assets/ppt
 
 # 放行 BSP 模块所有源码及头文件
 !BSP/
 !BSP/**
 
-# 放行 Keil 核心工程文件（排除编译生成的 Objects、Listings、日志文件及个人配置）
+# 放行 Keil 核心工程配置（排除编译生成的 Objects、Listings、日志文件及个人临时配置）
 !keil/
 keil/*
 !keil/*.uvprojx
 !keil/*.sct
 !keil/*.s
+
+# 忽略临时文件与编译输出
+*.tmp
+*.bak
+*.log

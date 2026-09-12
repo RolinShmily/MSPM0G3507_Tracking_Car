@@ -1,0 +1,11 @@
+# Ensure C source and Keil project files retain CRLF line endings on checkout
+*.c text eol=crlf
+*.h text eol=crlf
+*.s text eol=crlf
+*.sct text eol=crlf
+*.uvprojx text eol=crlf
+*.syscfg text eol=crlf
+
+# Markdown and text files
+*.md text
+*.txt text

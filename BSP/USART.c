@@ -610,10 +610,8 @@ void USART_Data_Analyze(void)
  *        上报格式: "PWM L:%d R:%d | RPM L:%d R:%d | TRK:%d\r\n"
  * @param period_ms 上报周期 (单位: ms，建议 200ms)
  */
-/* ---- 紧凑循迹遥测流 (串口指令 TLOG=<ms> 打开, 0 = 关闭) ----
- * 9600bps 下一行 25 字节约需 26ms, 所以周期给到 30ms 以下没有意义(链路自我限流)。
- * 默认关闭以免平时刷屏; 调试直角/找回时用 TLOG=50 打开, 抓那几百毫秒的瞬态。
- * 输出格式: T,<图案HEX>,<偏差mm>,<档位>,<目标L>,<目标R>,<反馈L>,<反馈R> */
+/* 紧凑循迹遥测流 (串口指令 TLOG=<ms>, 0 为关闭)
+ * 格式: T,<图案HEX>,<偏差mm>,<档位>,<目标L>,<目标R>,<反馈L>,<反馈R> */
 static uint32_t s_track_log_ms = 0U;      /* 0 = 关闭 */
 static uint32_t s_track_last_tick = 0U;
 

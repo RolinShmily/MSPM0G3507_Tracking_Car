@@ -3,32 +3,32 @@
 #include "SpeedCtrl.h"
 
 /**
- * 循迹实现: 加权偏差 + 分档比例差速 + 定轴自旋找回 (详见 Track.h 顶部说明)
+ * 循迹控制逻辑实现: 连续加权质心偏差 + 分级差速转向 + 定轴自旋找回
  */
 
 /* 探头位置权重 (单位 0.5cm): OUT1(最右) .. OUT8(最左) */
 static const int8_t s_weight2[8] = { +7, +5, +3, +1, -1, -3, -5, -7 };
 
-/* ---------------- 模块状态 ---------------- */
-static uint8_t  s_enabled    = 0U;                          /* 循迹使能 */
-static int32_t  s_base_speed = TRACK_SPEED_BASE;            /* 直道基速 (可在线改) */
-static Track_State_e s_state = TRACK_STATE_IDLE;            /* 当前档位/状态 */
+/* ---------------- 模块内部运行状态 ---------------- */
+static uint8_t  s_enabled    = 0U;                          /* 循迹使能标志 */
+static int32_t  s_base_speed = TRACK_SPEED_BASE;            /* 直道基准巡航转速 */
+static Track_State_e s_state = TRACK_STATE_IDLE;            /* 当前运行状态/档位 */
 
-static uint8_t  s_raw_prev   = 0xFFU;   /* 上一拍原始图案 (初值取不可能值, 保证首拍判为变化) */
-static uint8_t  s_same_cnt   = 0U;      /* 连续同图案拍数 (消抖) */
-static uint8_t  s_sensor     = 0x00U;   /* 消抖后的图案 */
+static uint8_t  s_raw_prev   = 0xFFU;   /* 上一拍原始采样图案 (初值 0xFF 确保首拍判定变化) */
+static uint8_t  s_same_cnt   = 0U;      /* 连续相同图案拍数统计 (软件消抖) */
+static uint8_t  s_sensor     = 0x00U;   /* 经消抖确认的当前传感器图案 */
 
-static int16_t  s_pos2       = 0;       /* 最近一次偏差 (0.5cm 单位) */
-static int16_t  s_pos2_last  = 0;       /* 最近一次**非零**偏差 (短暂全白时保持用) */
-static int8_t   s_dir_last   = 1;       /* 最近一次线所在半侧: +1 右, -1 左 */
-static uint8_t  s_pivot_hold = 0U;      /* 直角自旋滞回锁存 */
+static int16_t  s_pos2       = 0;       /* 当前加权偏差 (0.5cm 单位) */
+static int16_t  s_pos2_last  = 0;       /* 最近一次有效非零偏差 (脱线搜索保持用) */
+static int8_t   s_dir_last   = 1;       /* 最近一次线所在半侧: +1 右侧, -1 左侧 */
+static uint8_t  s_pivot_hold = 0U;      /* 直角定轴自旋迟滞锁存标志 */
 
-static uint16_t s_lost_ticks    = 0U;   /* 全白连续拍数 */
-static uint16_t s_search_ticks  = 0U;   /* 找回自旋已转拍数 */
-static uint16_t s_recover_ticks = 0U;   /* 找回后低速交接剩余拍数 */
+static uint16_t s_lost_ticks    = 0U;   /* 连续全白脱线拍数 */
+static uint16_t s_search_ticks  = 0U;   /* 原地自旋寻线已耗拍数 */
+static uint16_t s_recover_ticks = 0U;   /* 捕获线后低速过渡剩余拍数 */
 
 /**
- * @brief 由 8 路图案算加权偏差 pos2 (单位 0.5cm, 值域 ±7)
+ * @brief 由 8 路探头图案计算加权质心偏差 pos2 (单位 0.5cm, 范围 ±7)
  */
 static int16_t Track_CalcPos2(uint8_t sensor)
 {
@@ -43,15 +43,15 @@ static int16_t Track_CalcPos2(uint8_t sensor)
         }
     }
     if (cnt == 0) {
-        return 0;                   /* 全白交给上层(脱线逻辑)处理 */
+        return 0;                   /* 全白脱线交由上层状态机处理 */
     }
     return (int16_t)(sum_w / cnt);
 }
 
 /**
- * @brief 施加控制律 —— 全模块唯一的一条律, 直道/弯道/直角三档都走这里
- * @param pos2 偏差 (0.5cm 单位, 正 = 线在右)
- * @param base 当前基速 RPM (低速交接期间传入更小的值)
+ * @brief 施加转向控制律 (直道比例差速、弯道差速与直角弯定轴自旋)
+ * @param pos2 加权偏差 (0.5cm 为单位, 正值代表黑线偏右)
+ * @param base 当前巡航基准转速 (RPM)
  */
 static void Track_ApplyLaw(int16_t pos2, int32_t base)
 {
@@ -59,7 +59,7 @@ static void Track_ApplyLaw(int16_t pos2, int32_t base)
     int32_t l;
     int32_t r;
 
-    /* 直角档滞回: 进入需 |pos2| >= 4 (2.0cm), 退出需 |pos2| <= 2 (1.0cm) */
+    /* 直角弯档位迟滞逻辑: 进入需 |pos2| >= 4 (2.0cm), 退出需 |pos2| <= 2 (1.0cm) */
     if (s_pivot_hold) {
         if (mag <= TRACK_PIVOT_EXIT2) {
             s_pivot_hold = 0U;
@@ -69,9 +69,9 @@ static void Track_ApplyLaw(int16_t pos2, int32_t base)
     }
 
     if (s_pivot_hold) {
-        /* 直角档: 定轴自旋, 平均速度为 0 -> 原地转, 不吃掉直角后的直线段 */
+        /* 直角弯: 定轴原地自旋 (平均前进速度为 0) */
         int32_t a = TRACK_SPEED_PIVOT;
-        l = (pos2 > 0) ? a : -a;    /* 线在右 -> 右转(顺时针): 左轮正转, 右轮反转 */
+        l = (pos2 > 0) ? a : -a;    /* 线偏右 -> 顺时针右转: 左正右反 */
         r = (pos2 > 0) ? -a : a;
         s_state = TRACK_STATE_PIVOT;
     } else {
@@ -84,16 +84,16 @@ static void Track_ApplyLaw(int16_t pos2, int32_t base)
             s_state = TRACK_STATE_LINE;
         }
 
-        /* 差速 = 0.35 x 基速 x |偏差(cm)|, 其中 |偏差(cm)| = mag / 2 */
+        /* 差速 = 0.35 * 基速 * |偏差(cm)|, 其中 |偏差(cm)| = mag / 2 */
         turn = (base * TRACK_TURN_GAIN_PCT * mag) / (100 * TRACK_POS2_PER_CM);
         if (turn > TRACK_TURN_MAX) {
             turn = TRACK_TURN_MAX;
         }
 
-        if (pos2 > 0) {             /* 线偏右 -> 右转: 左轮快, 右轮慢 */
+        if (pos2 > 0) {             /* 线偏右 -> 右转: 左轮加、右轮减 */
             l = base + turn;
             r = base - turn;
-        } else {                    /* 线偏左 -> 左转: 右轮快, 左轮慢 */
+        } else {                    /* 线偏左 -> 左转: 左轮减、右轮加 */
             l = base - turn;
             r = base + turn;
         }
@@ -103,8 +103,7 @@ static void Track_ApplyLaw(int16_t pos2, int32_t base)
 }
 
 /**
- * @brief 进入/维持脱线找回: 朝"最后看到线的那一侧"定轴自旋
- *        自旋满 TRACK_SEARCH_MAX_TICKS 仍未扫到线 -> 停车报警 (靠按键重启)
+ * @brief 执行脱线寻线状态: 朝最后见线侧原地定轴自旋搜线
  */
 static void Track_EnterSearch(void)
 {
@@ -121,14 +120,14 @@ static void Track_EnterSearch(void)
         s_search_ticks++;
     }
     if (s_search_ticks >= TRACK_SEARCH_MAX_TICKS) {
-        s_state = TRACK_STATE_ALARM;        /* 转了一圈还是没线: 锁存停车 */
+        s_state = TRACK_STATE_ALARM;        /* 寻线超时锁定并停止电机 */
         SpeedCtrl_SetTargetLR(0, 0);
         return;
     }
 
-    if (s_dir_last > 0) {                   /* 线最后在右侧 -> 顺时针转回去找 */
+    if (s_dir_last > 0) {                   /* 线最后出现在右侧 -> 顺时针自旋搜线 */
         SpeedCtrl_SetTargetLR(a, -a);
-    } else {                                /* 线最后在左侧 -> 逆时针转回去找 */
+    } else {                                /* 线最后出现在左侧 -> 逆时针自旋搜线 */
         SpeedCtrl_SetTargetLR(-a, a);
     }
 }
@@ -154,7 +153,7 @@ void Track_Enable(uint8_t enable)
 {
     if (enable) {
         if (!s_enabled) {
-            /* 每次启动都从干净状态开始 (同时解除报警锁存) */
+            /* 使能时重置所有状态并清除报警锁存 */
             s_state = TRACK_STATE_LINE;
             s_raw_prev = 0xFFU;
             s_same_cnt = 0U;
@@ -185,10 +184,10 @@ void Track_SetBaseSpeed(int32_t speed)
     if (speed < 0) {
         speed = -speed;
     }
-    if (speed < 30) {                       /* 下限: 低于 30RPM 基本推不动车 */
+    if (speed < 30) {                       /* 设定转速下限保护 */
         speed = 30;
     }
-    if (speed > 250) {                      /* 上限: 与 SpeedCtrl 目标上限一致 */
+    if (speed > 250) {                      /* 设定转速上限保护 */
         speed = 250;
     }
     s_base_speed = speed;
@@ -221,17 +220,16 @@ void Track_Process(void)
     int32_t base;
 
     if (!s_enabled) {
-        /* 未使能: 不动目标值, 保留台架测试 (SPD= / KP= 指令直接驱动电机) 的能力 */
         s_state = TRACK_STATE_IDLE;
         return;
     }
 
     if (s_state == TRACK_STATE_ALARM) {
-        SpeedCtrl_SetTargetLR(0, 0);        /* 报警锁存: 只有 Track_Enable(1) 能复位 */
+        SpeedCtrl_SetTargetLR(0, 0);        /* 报警锁定状态 */
         return;
     }
 
-    /* ---- 1. 采样 + 消抖: 连续 TRACK_DEBOUNCE_TICKS 拍同一图案才采用 ---- */
+    /* 1. 采样与消抖: 连续 TRACK_DEBOUNCE_TICKS 拍图案一致方为有效采样 */
     raw = Gray_ReadByte();
     if (raw == s_raw_prev) {
         if (s_same_cnt < 0xFFU) {
@@ -245,18 +243,16 @@ void Track_Process(void)
         s_sensor = raw;
     }
 
-    /* ---- 2. 全白处理 ---- */
+    /* 2. 全白脱线处理 */
     if (s_sensor == 0x00U) {
         if (s_lost_ticks < 0xFFFFU) {
             s_lost_ticks++;
         }
 
         if (s_lost_ticks >= TRACK_LOST_TICKS) {
-            Track_EnterSearch();            /* 满 50ms: 判定脱线, 定轴自旋找回 */
+            Track_EnterSearch();            /* 全白超 50ms: 进入定轴自旋搜线 */
         } else if (s_state != TRACK_STATE_SEARCH) {
-            /* 50ms 内保持上一拍的偏差继续走。
-             * 直角两条线之间、赛道小缺口、图案切换的空档都会短暂全白, 这时"保持原来的
-             * 修正方向"比"改直行"更正确 (老实现就是在这里丢掉拐点的)。 */
+            /* 50ms 缓冲期内保持上一拍历史偏差行驶, 渡过图案切换间隙 */
             if (s_recover_ticks > 0U) {
                 s_recover_ticks--;
                 Track_ApplyLaw(s_pos2_last, TRACK_SPEED_RECOVER);
@@ -267,10 +263,10 @@ void Track_Process(void)
         return;
     }
 
-    /* ---- 3. 见到线 ---- */
+    /* 3. 正常捕获黑线 */
     s_lost_ticks = 0U;
 
-    /* 从找回状态重新捕获到线 -> 先低速走一段再回主律, 防止刚好转又冲出去 */
+    /* 若从搜线状态重新找回黑线，先低速过渡运行一段周期 */
     if (s_state == TRACK_STATE_SEARCH) {
         s_recover_ticks = TRACK_RECOVER_TICKS;
     }
@@ -290,7 +286,7 @@ void Track_Process(void)
 
     Track_ApplyLaw(pos2, base);
 
-    /* 交接期间档位上报为 RECOVER (控制律本身仍按偏差走, 只是基速低) */
+    /* 低速交接期档位上报为 RECOVER */
     if (s_recover_ticks > 0U && s_state != TRACK_STATE_PIVOT) {
         s_state = TRACK_STATE_RECOVER;
     }

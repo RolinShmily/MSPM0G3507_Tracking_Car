@@ -17,6 +17,18 @@ static volatile uint8_t    g_last_key   = KEY_NONE;
 static volatile uint8_t    g_current_pressed_key = KEY_NONE;
 
 /**
+ * @brief 按键模块初始化
+ */
+void Key_Init(void)
+{
+    g_key_event  = KEY_EVENT_NONE;
+    g_key_state  = KEY_STATE_IDLE;
+    g_press_ticks = 0;
+    g_last_key   = KEY_NONE;
+    g_current_pressed_key = KEY_NONE;
+}
+
+/**
  * @brief 实时读取当前按键引脚电平
  * @return KEY_NONE(0), KEY_1(PA28按下)
  */
@@ -84,13 +96,9 @@ void Key_Tick_Handler(void)
                     g_key_state = KEY_STATE_LONG_HELD;
                 }
             } else {
-                /* 1000ms 前释放 */
-                if (g_press_ticks < 500) {
-                    g_last_key  = g_current_pressed_key;
-                    g_key_event = KEY_EVENT_SHORT_PRESS;
-                } else {
-                    g_key_event = KEY_EVENT_NONE;
-                }
+                /* 1000ms 前释放均判定为短按 */
+                g_last_key  = g_current_pressed_key;
+                g_key_event = KEY_EVENT_SHORT_PRESS;
                 g_key_state = KEY_STATE_IDLE;
                 g_press_ticks = 0;
                 g_current_pressed_key = KEY_NONE;

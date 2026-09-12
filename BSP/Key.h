@@ -15,6 +15,11 @@ typedef enum {
 } KeyEvent_t;
 
 /**
+ * @brief 按键模块初始化
+ */
+void Key_Init(void);
+
+/**
  * @brief 实时读取按键引脚电平
  * @return KEY_NONE(0), KEY_1(PA28按下)
  */
