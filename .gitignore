@@ -1,0 +1,25 @@
+# 默认忽略所有文件与目录
+/*
+
+# 放行 .gitignore 与文档
+!.gitignore
+!AGENTS.md
+!README.md
+!README.html
+
+# 放行用户主程序与 SysConfig 核心文件
+!empty.c
+!empty.syscfg
+!ti_msp_dl_config.c
+!ti_msp_dl_config.h
+
+# 放行 BSP 模块所有文件
+!BSP/
+!BSP/**
+
+# 放行 Keil 核心工程文件（排除编译生成的 Objects、中间文件及个人配置）
+!keil/
+keil/*
+!keil/*.uvprojx
+!keil/*.sct
+!keil/*.s
