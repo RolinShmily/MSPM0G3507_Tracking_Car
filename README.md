@@ -5,7 +5,7 @@
 ---
 
 ### 1. Overview
-This project is an open-source, dual-closed-loop autonomous tracking car system built on the **Texas Instruments (TI) MSPM0G3507** microcontroller. It integrates a 100Hz incremental PI wheel speed control loop with an 8-channel infrared grayscale continuous weighted-centroid tracking loop, achieving high-stability line tracking across straight lines, continuous curves, and 90° right-angle turns.
+This project is a dual-closed-loop autonomous tracking car system built on the **Texas Instruments (TI) MSPM0G3507** microcontroller. It integrates a 100Hz incremental PI wheel speed control loop with an 8-channel infrared grayscale continuous weighted-centroid tracking loop, achieving high-stability line tracking across straight lines, continuous curves, and 90° right-angle turns.
 
 ### 2. Baseline & Chip Information
 - **MCU**: Texas Instruments LP-MSPM0G3507 (ARM Cortex-M0+ core running at 32MHz SYSOSC, 128KB Flash, 32KB SRAM).
@@ -110,4 +110,4 @@ The third-party components bundled in this repository remain governed by their r
 
 - **Texas Instruments**: DriverLib and SysConfig files are licensed under the **BSD 3-Clause License** by Texas Instruments Incorporated.
 - **ARM CMSIS Core**: CMSIS Core header files are licensed under the **Apache-2.0 License** by Arm Limited.
-- **Keil / Arm Toolchain Notice**: *Arm*, *Keil*, and *MDK-ARM* are registered trademarks of Arm Limited. This project is an independent open-source community effort and is not endorsed by or affiliated with Arm Limited. Compiling this project using Keil MDK-ARM requires users to maintain their own valid Keil MDK software license (e.g., Keil MDK Community edition for non-commercial learning/open-source use) in compliance with Arm's End User License Agreement (EULA). This repository does not distribute or bundle any Keil proprietary software or licenses.
+- **Keil / Arm Toolchain Notice**: *Arm*, *Keil*, and *MDK-ARM* are registered trademarks of Arm Limited. This project is an independent personal/community engineering effort and is not endorsed by or affiliated with Arm Limited. Compiling this project using Keil MDK-ARM requires users to maintain their own valid Keil MDK software license (e.g., Keil MDK Community edition for non-commercial learning/open-source use) in compliance with Arm's End User License Agreement (EULA). This repository does not distribute or bundle any Keil proprietary software or licenses.
