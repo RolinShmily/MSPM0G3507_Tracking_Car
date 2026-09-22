@@ -68,7 +68,6 @@ empty_nortos/
 ├── keil/                   # Keil MDK project files
 │   └── empty_LP_MSPM0G3507_nortos_keil.uvprojx
 ├── source/                 # TI DriverLib SDK and ARM CMSIS Core headers
-├── LICENSE                 # BSD 3-Clause open source license
 ├── README.md               # English documentation
 └── README_CN.md            # Chinese documentation
 ```
@@ -105,9 +104,9 @@ empty_nortos/
 
 ---
 
-### 7. License & Disclaimers
+### 7. Third-Party Notices & Disclaimers
 
-This project is licensed under the **BSD 3-Clause License**. See the [LICENSE](LICENSE) file for complete terms.
+The third-party components bundled in this repository remain governed by their respective upstream licenses:
 
 - **Texas Instruments**: DriverLib and SysConfig files are licensed under the **BSD 3-Clause License** by Texas Instruments Incorporated.
 - **ARM CMSIS Core**: CMSIS Core header files are licensed under the **Apache-2.0 License** by Arm Limited.

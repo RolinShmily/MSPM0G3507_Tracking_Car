@@ -68,7 +68,6 @@ empty_nortos/
 ├── keil/                   # Keil MDK 工程文件
 │   └── empty_LP_MSPM0G3507_nortos_keil.uvprojx
 ├── source/                 # TI DriverLib 固件库及 ARM CMSIS 核心头文件
-├── LICENSE                 # BSD 3-Clause 开源协议文本
 ├── README.md               # 英文说明文档
 └── README_CN.md            # 中文说明文档
 ```
@@ -105,9 +104,9 @@ empty_nortos/
 
 ---
 
-### 7. 开源协议与第三方声明（License & Disclaimers）
+### 7. 第三方组件声明与免责（Third-Party Notices & Disclaimers）
 
-本项目采用 **BSD 3-Clause License** 开源协议。完整协议内容参见 [LICENSE](LICENSE) 文件。
+本仓库内嵌的第三方组件仍遵循其各自上游协议，具体声明如下：
 
 - **德州仪器（Texas Instruments）**：DriverLib 固件库及 SysConfig 文件受德州仪器版权保护，采用 **BSD 3-Clause License**。
 - **安谋国际（Arm Limited CMSIS）**：ARM CMSIS Core 核心头文件受 Arm Limited 版权保护，采用 **Apache-2.0 License**。
