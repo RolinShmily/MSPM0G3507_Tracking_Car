@@ -63,6 +63,7 @@ empty_nortos/
 │   ├── USART.c / .h        # 双模串口驱动与指令解析
 │   └── Watchdog.c / .h     # WWDT0 硬件看门狗管理
 ├── assets/                 # 原理图、PCB工程及引脚分配图
+│   └── SCH/                # 原属组织版权的硬件资料（详见第 7 节）
 ├── empty.c                 # 主程序入口与主循环调度
 ├── empty.syscfg            # SysConfig 外设配置文件
 ├── keil/                   # Keil MDK 工程文件
@@ -111,3 +112,11 @@ empty_nortos/
 - **德州仪器（Texas Instruments）**：DriverLib 固件库及 SysConfig 文件受德州仪器版权保护，采用 **BSD 3-Clause License**。
 - **安谋国际（Arm Limited CMSIS）**：ARM CMSIS Core 核心头文件受 Arm Limited 版权保护，采用 **Apache-2.0 License**。
 - **Keil / Arm 工具链与商标声明**：*Arm*、*Keil* 和 *MDK-ARM* 是 Arm Limited（或其子公司）在美欧及其他国家/地区的注册商标。本项目为独立的个人/社区工程实践项目，与 Arm 或 Keil 无官方商业关联或品牌代言。本项目源码及工程配置（`.uvprojx`）中不包含任何 Keil 商业软件本体、编译器可执行程序或破解文件。使用 Keil MDK-ARM 编译本项目需要开发者自行遵循 Arm 的软件最终用户许可协议（EULA）并获取合法授权（非商业学习/开源用途可免费申请并使用官方 Keil MDK Community 社区版）。
+
+#### 硬件资料版权说明（`assets/SCH/`）
+
+> **重要声明**：`assets/SCH/` 目录下的全部内容（原理图 PDF、PCB 版图、引脚复用/分配图等）均出自其**原作者/原属组织**。**相关版权及一切权利均归原属组织所有。**
+>
+> 本仓库收录该目录内容**仅用于非商业性的学习、研究及硬件兼容性参考**，该内容**不属于**本仓库自有源码的授权范围，其在本仓库中的存在不构成任何权利的转让、放弃或授予。
+>
+> 对该资料进行任何再分发、修改或商业使用，均须另行遵守原版权方设定的授权条款。若您是版权方并希望删除、替换或调整相关署名与归属标注，请提交 Issue，我们将及时处理。

@@ -63,6 +63,7 @@ empty_nortos/
 │   ├── USART.c / .h        # Dual-mode UART driver & command parser
 │   └── Watchdog.c / .h     # WWDT0 hardware watchdog driver
 ├── assets/                 # Schematics, PCB designs, and pinout diagrams
+│   └── SCH/                # Hardware docs owned by the original organization (see §7)
 ├── empty.c                 # Application entry and main loop
 ├── empty.syscfg            # SysConfig peripheral configuration file
 ├── keil/                   # Keil MDK project files
@@ -111,3 +112,11 @@ The third-party components bundled in this repository remain governed by their r
 - **Texas Instruments**: DriverLib and SysConfig files are licensed under the **BSD 3-Clause License** by Texas Instruments Incorporated.
 - **ARM CMSIS Core**: CMSIS Core header files are licensed under the **Apache-2.0 License** by Arm Limited.
 - **Keil / Arm Toolchain Notice**: *Arm*, *Keil*, and *MDK-ARM* are registered trademarks of Arm Limited. This project is an independent personal/community engineering effort and is not endorsed by or affiliated with Arm Limited. Compiling this project using Keil MDK-ARM requires users to maintain their own valid Keil MDK software license (e.g., Keil MDK Community edition for non-commercial learning/open-source use) in compliance with Arm's End User License Agreement (EULA). This repository does not distribute or bundle any Keil proprietary software or licenses.
+
+#### Hardware Documentation Notice (`assets/SCH/`)
+
+> **Important Note**: All contents under `assets/SCH/` (schematic PDFs, PCB layout drawings, pinout diagrams, etc.) are the work of their **original authors/organizations**. **All copyright and related rights remain with the original owning organization(s).**
+>
+> These files are included in this repository **solely for non-commercial learning, study, and hardware-compatibility reference purposes**. They are **not** covered by any license that applies to this repository's own source code, and their presence here implies no transfer, waiver, or grant of any rights.
+>
+> Any redistribution, modification, or commercial use of this material must separately comply with the terms set by the original rights holder. If you are the rights holder and wish for the material to be removed, replaced, or re-attributed, please open an issue and it will be handled promptly.
